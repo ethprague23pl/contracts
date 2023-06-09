@@ -58,7 +58,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "deploy": "hardhat deploy-zksync --script deploy-account.ts",
-    "usePaymaster": "hardhat deploy-zksync --script use-paymaster.ts",
+    "deploy-paymaster": "hardhat deploy-zksync --script deploy-paymaster.ts",
+    "use-paymaster": "hardhat deploy-zksync --script use-paymaster.ts",
     "test": "NODE_ENV=test hardhat test",
     "test-live": "hardhat test"
   }

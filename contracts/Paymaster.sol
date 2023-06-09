@@ -26,7 +26,9 @@ contract Paymaster is IPaymaster, Ownable {
         _;
     }
 
-    constructor() {}
+    constructor(address token) {
+        addToken(token);
+    }
 
     function existsInArray(address addr) public view returns (bool) {
     for (uint i = 0; i < allowedTokens.length; i++) {

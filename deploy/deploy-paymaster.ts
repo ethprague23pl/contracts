@@ -25,8 +25,8 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const deployer = new Deployer(hre, wallet);
 
   // // Deploying the paymaster
-  const paymasterArtifact = await deployer.loadArtifact("SimplePaymaster");
-  const paymaster = await deployer.deploy(paymasterArtifact);
+  const paymasterArtifact = await deployer.loadArtifact("Paymaster");
+  const paymaster = await deployer.deploy(paymasterArtifact, ["0x6A6c2b0EaBBe0701D90b915482E150D032d76A1B"]);
   console.log(`Paymaster address: ${paymaster.address}`);
 
   // Supplying paymaster with ETH.

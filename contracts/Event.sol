@@ -22,7 +22,7 @@ contract Event is
 
     constructor(uint256 _ticketsCount, uint256 _price) ERC721A(eventName, key) {
         ticketsCount = _ticketsCount;
-        ticketprice = _price;
+        ticketPrice = _price;
     }
 
     function numberMinted(address owner) public view returns (uint256) {

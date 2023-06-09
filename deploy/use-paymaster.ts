@@ -2,61 +2,39 @@ import { ContractFactory, Provider, utils, Wallet } from "zksync-web3";
 import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
-import { getDeployedContracts } from "zksync-web3/build/src/utils";
 
 require("dotenv").config();
 
 // Put the address of the deployed paymaster and the Greeter Contract in the .env file
-const PAYMASTER_ADDRESS = process.env.PAYMASTER_ADDRESS;
-const GREETER_CONTRACT_ADDRESS = process.env.GREETER_CONTRACT;
+const PAYMASTER_ADDRESS = "0x17aA0e598FF16CEc73Ce79f5b88B1D5A48643347";
 const EVENT_CONTRACT_ADDRESS = "0x6A6c2b0EaBBe0701D90b915482E150D032d76A1B";
 
-// Put the address of the ERC20 token in the .env file:
-const TOKEN_ADDRESS = process.env.TOKEN_ADDRESS;
-
-function getToken(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
-  const artifact = hre.artifacts.readArtifactSync("MyERC20");
-  return new ethers.Contract(TOKEN_ADDRESS, artifact.abi, wallet);
-}
-
-// Greeter contract
-function getGreeter(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
-  const artifact = hre.artifacts.readArtifactSync("Greeter");
-  return new ethers.Contract(GREETER_CONTRACT_ADDRESS, artifact.abi, wallet);
-}
+// Wallet private key
+// ⚠️ Never commit private keys to file tracking history, or your account could be compromised.
+const EMPTY_WALLET_PRIVATE_KEY = Wallet.createRandom().privateKey
 
 function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
   const artifact = hre.artifacts.readArtifactSync("Event");
   return new ethers.Contract(EVENT_CONTRACT_ADDRESS, artifact.abi, wallet);
 }
 
-// Wallet private key
-// ⚠️ Never commit private keys to file tracking history, or your account could be compromised.
-const EMPTY_WALLET_PRIVATE_KEY = process.env.EMPTY_WALLET_PRIVATE_KEY;
-// TODO: Consider change with one of AAs
-
-
 export default async function (hre: HardhatRuntimeEnvironment) {
-    const provider = new Provider("https://zksync2-testnet.zksync.dev");
-    const emptyWallet = new Wallet(EMPTY_WALLET_PRIVATE_KEY!, provider);
+  const provider = new Provider("https://zksync2-testnet.zksync.dev");
+  const emptyWallet = new Wallet(EMPTY_WALLET_PRIVATE_KEY!, provider);
 
   // Obviously this step is not required, but it is here purely to demonstrate that indeed the wallet has no ether.
   const ethBalance = await emptyWallet.getBalance();
-    if (!ethBalance.eq(0)) {
-      throw new Error("The wallet is not empty");
-    }
+  if (!ethBalance.eq(0)) {
+    throw new Error("The wallet is not empty");
+  }
 
-  const erc20Balance = await emptyWallet.getBalance(TOKEN_ADDRESS);
-  console.log(`ERC20 balance of the user before tx: ${erc20Balance}`);
-
-  const greeter = getGreeter(hre, emptyWallet);
-  const erc20 = getToken(hre, emptyWallet);
+  const event = getEvent(hre, emptyWallet);
 
   const gasPrice = await provider.getGasPrice();
 
   // Loading the Paymaster Contract
   const deployer = new Deployer(hre, emptyWallet);
-  const paymasterArtifact = await deployer.loadArtifact("MyPaymaster");
+  const paymasterArtifact = await deployer.loadArtifact("Paymaster");
 
   const PaymasterFactory = new ContractFactory(
     paymasterArtifact.abi,
@@ -66,15 +44,25 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const PaymasterContract = PaymasterFactory.attach(PAYMASTER_ADDRESS);
 
   // Estimate gas fee for the transaction
-  const gasLimit = await greeter.estimateGas.setGreeting(
-    "new updated greeting",
+  const gasLimit = await event.estimateGas.buy(
+    1,
     {
+      // customData: {
+      //   gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+      //   paymasterParams: utils.getPaymasterParams(PAYMASTER_ADDRESS, {
+      //     type: "ApprovalBased",
+      //     token: TOKEN_ADDRESS,
+      //     // Set a large allowance just for estimation
+      //     minimalAllowance: ethers.BigNumber.from(`100000000000000000000`),
+      //     // Empty bytes as testnet paymaster does not use innerInput
+      //     innerInput: new Uint8Array(),
+      //   }),
+      // },
       customData: {
         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
         paymasterParams: utils.getPaymasterParams(PAYMASTER_ADDRESS, {
           type: "ApprovalBased",
-          token: TOKEN_ADDRESS,
-          // Set a large allowance just for estimation
+          token: EVENT_CONTRACT_ADDRESS,
           minimalAllowance: ethers.BigNumber.from(`100000000000000000000`),
           // Empty bytes as testnet paymaster does not use innerInput
           innerInput: new Uint8Array(),
@@ -83,48 +71,24 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     }
   );
 
+  console.log(gasLimit)
+
   // Gas estimation:
   const fee = gasPrice.mul(gasLimit.toString());
   console.log(`Estimated ETH FEE (gasPrice * gasLimit): ${fee}`);
 
-  // Calling the dAPI to get the ETH price:
-  const ETHUSD = await PaymasterContract.readDapi(
-    "0x28ce555ee7a3daCdC305951974FcbA59F5BdF09b"
-  );
-  const USDCUSD = await PaymasterContract.readDapi(
-    "0x946E3232Cc18E812895A8e83CaE3d0caA241C2AB"
-  );
-
-  // Checks old allowance (for testing purposes):
-  const checkSetAllowance = await erc20.allowance(
-    emptyWallet.address,
-    PAYMASTER_ADDRESS
-  );
-  console.log(`ERC20 allowance for paymaster : ${checkSetAllowance}`);
-
-  console.log(`ETH/USD dAPI Value: ${ETHUSD}`);
-  console.log(`USDC/USD dAPI Value: ${USDCUSD}`);
-
-  // Calculating the USD fee:
-  const usdFee = fee.mul(ETHUSD).div(USDCUSD);
-  console.log(`Estimated USD FEE: ${usdFee}`);
-
-  console.log(`Current message is: ${await greeter.greet()}`);
-
   // Encoding the "ApprovalBased" paymaster flow's input
   const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
     type: "ApprovalBased",
-    token: TOKEN_ADDRESS,
-    // set minimalAllowance to the estimated fee in erc20
-    minimalAllowance: ethers.BigNumber.from(usdFee),
-    // empty bytes as testnet paymaster does not use innerInput
+    token: EVENT_CONTRACT_ADDRESS,
+    minimalAllowance: ethers.BigNumber.from(`100000000000000000000`),
     innerInput: new Uint8Array(),
   });
 
   await (
-    await greeter
+    await event
       .connect(emptyWallet)
-      .setGreeting(`new greeting updated at ${new Date().toUTCString()}`, {
+      .mint(1, {
         // specify gas values
         maxFeePerGas: gasPrice,
         maxPriorityFeePerGas: 0,
@@ -137,11 +101,8 @@ export default async function (hre: HardhatRuntimeEnvironment) {
       })
   ).wait();
 
-  const newErc20Balance = await emptyWallet.getBalance(TOKEN_ADDRESS);
+  const res = await provider.getBalance(emptyWallet.address);
 
-  console.log(`ERC20 Balance of the user after tx: ${newErc20Balance}`);
-  console.log(
-    `Transaction fee paid in ERC20 was ${erc20Balance.sub(newErc20Balance)}`
-  );
-  console.log(`Message in contract now is: ${await greeter.greet()}`);
+  console.log(`ETH Balance of the user after tx: ${res}`);
+  console.log(`Message in contract now is: ${await event.ownerOf(emptyWallet.address)}`);
 }
