@@ -29,6 +29,14 @@ contract Event is
         return _numberMinted(owner);
     }
 
+    function getName() public view returns (string memory) {
+        return "EVENT NAME";
+    }
+
+    function getUserName(string memory _userName) public view returns (string memory) {
+        return _userName;
+    }
+
     function buy(uint8 amount) public payable {
         require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
         require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");

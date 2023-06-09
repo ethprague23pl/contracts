@@ -1,4 +1,4 @@
-import { ContractFactory, Provider, utils, Wallet } from "zksync-web3";
+import { ContractFactory, Provider, utils, Wallet, types, EIP712Signer } from "zksync-web3";
 import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
@@ -6,12 +6,13 @@ import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
 require("dotenv").config();
 
 // Put the address of the deployed paymaster and the Greeter Contract in the .env file
-const PAYMASTER_ADDRESS = "0x17aA0e598FF16CEc73Ce79f5b88B1D5A48643347";
-const EVENT_CONTRACT_ADDRESS = "0x6A6c2b0EaBBe0701D90b915482E150D032d76A1B";
+const PAYMASTER_ADDRESS = process.env.PAYMASTER_ADDRESS;
+const EVENT_CONTRACT_ADDRESS = process.env.EVENT_ADDRESS;
 
 // Wallet private key
 // ⚠️ Never commit private keys to file tracking history, or your account could be compromised.
 const EMPTY_WALLET_PRIVATE_KEY = Wallet.createRandom().privateKey
+const WALLET = process.env.PRIVATE_KEY;
 
 function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
   const artifact = hre.artifacts.readArtifactSync("Event");
@@ -19,8 +20,9 @@ function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
 }
 
 export default async function (hre: HardhatRuntimeEnvironment) {
-  const provider = new Provider("https://zksync2-testnet.zksync.dev");
+  const provider = new Provider("http://localhost:3050/");
   const emptyWallet = new Wallet(EMPTY_WALLET_PRIVATE_KEY!, provider);
+  const wallet = new Wallet(WALLET!, provider);
 
   // Obviously this step is not required, but it is here purely to demonstrate that indeed the wallet has no ether.
   const ethBalance = await emptyWallet.getBalance();
@@ -28,14 +30,58 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     throw new Error("The wallet is not empty");
   }
 
-  const event = getEvent(hre, emptyWallet);
+  const event = getEvent(hre, wallet);
+  const contractWallet = EVENT_CONTRACT_ADDRESS;
+
+  let tx = await event.populateTransaction.buy(
+    1
+  )
+
+  tx = {
+    ...tx,
+    to: wallet.address,
+    value: ethers.utils.parseEther("2"),
+    data: "0x",
+    from: contractWallet,
+    chainId: (await provider.getNetwork()).chainId,
+    nonce: await provider.getTransactionCount(contractWallet!),
+    type: 113,
+    customData: {
+      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+    } as types.Eip712Meta};
+
+  tx.gasPrice = await provider.getGasPrice();
+  if (tx.gasLimit == undefined) {
+    tx.gasLimit = await provider.estimateGas(tx);
+  }
+
+  const signedTxHash = EIP712Signer.getSignedDigest(tx);
+  const signature = ethers.utils.arrayify(
+    ethers.utils.joinSignature(wallet._signingKey().signDigest(signedTxHash))
+  );
+
+  tx.customData = {
+    ...tx.customData,
+    customSignature: signature,
+  };
+
+  console.log("Request", tx)
+
+  const resp = await provider.sendTransaction(utils.serialize(tx));
+
+  resp.wait();
+
+  console.log("response:", resp)
+
+
+
 
   const gasPrice = await provider.getGasPrice();
 
   // Loading the Paymaster Contract
-  const deployer = new Deployer(hre, emptyWallet);
+  const deployer = new Deployer(hre, wallet);
   const paymasterArtifact = await deployer.loadArtifact("Paymaster");
-
+  
   const PaymasterFactory = new ContractFactory(
     paymasterArtifact.abi,
     paymasterArtifact.bytecode,
