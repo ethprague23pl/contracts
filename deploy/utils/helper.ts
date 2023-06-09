@@ -5,5 +5,5 @@ export const toBN = (x: string): BigNumber => {
 }
 
 export const GASLIMIT = {
-    gasLimit: ethers.utils.hexlify(1000000)
+    gasLimit: ethers.utils.hexlify(60000000)
 }

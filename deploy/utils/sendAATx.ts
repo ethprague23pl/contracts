@@ -9,7 +9,7 @@ import { ethers } from "ethers";
         chainId: (await provider.getNetwork()).chainId,
         nonce: await provider.getTransactionCount(account.address),
         type: 113,
-        value: ethers.BigNumber.from(0),
+        value: ethers.BigNumber.from(300000),
         //value: ethers.utils.parseEther("1"),
         customData: {
           ergsPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
@@ -17,11 +17,11 @@ import { ethers } from "ethers";
       };
 
       tx.gasPrice = await provider.getGasPrice(); 
-      if ( tx.gasLimit == undefined) {
-       //  console.log("4")
-          //tx.gasLimit = await provider.estimateGas(tx)
-          tx.gasLimit = ethers.utils.hexlify(1000000)
-      }
+      // if ( tx.gasLimit == undefined) {
+      //  //  console.log("4")
+      //     //tx.gasLimit = await provider.estimateGas(tx)
+      //     tx.gasLimit = ethers.utils.hexlify(1000000)
+      // }
 
     const signedTxHash = EIP712Signer.getSignedDigest(tx);
     const signature = ethers.utils.arrayify(ethers.utils.joinSignature(user._signingKey().signDigest(signedTxHash)))
