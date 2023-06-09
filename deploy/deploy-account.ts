@@ -1,49 +1,134 @@
-import { utils, Wallet, Provider, EIP712Signer, types } from "zksync-web3";
+import { utils, Wallet, Provider, EIP712Signer, types, Contract } from "zksync-web3";
 import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
+import { GASLIMIT } from "./utils/helper";
 
-// Put the address of your AA factory
-const AA_FACTORY_ADDRESS = "0x89bB54D79693cB08ca336986D8a231f8fBF3c7e9";
+const RICH_WALLET_PK = process.env.NODE_ENV == "test" ? '0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110' : process.env.PRIVATE_KEY;
+const RICH_WALLET_OWNER_PK = '0x850683b40d4a740aa6e745f889a6fdc8327be76e122f5aba645a5b02d0248db8';
 
-export default async function (hre: HardhatRuntimeEnvironment) {
-  const provider = new Provider("https://testnet.era.zksync.dev");
+// QUESTIONS
+// HOW TO TRANSFER ETH FROM MULTISIG TO ANOTHER WALLET?
+// HOW TO INVOKE TRANSACTION USING MULTISIG ACC
+
+const deployFactory = async (hre: HardhatRuntimeEnvironment) => {
   // Private key of the account used to deploy
-  const wallet = new Wallet("XD").connect(provider);
-  const factoryArtifact = await hre.artifacts.readArtifact("AAFactory");
+  const wallet = new Wallet(RICH_WALLET_PK!);
+  const deployer = new Deployer(hre, wallet);
+  const aaArtifact = await deployer.loadArtifact("AAFactory");
 
-  const aaFactory = new ethers.Contract(
-    AA_FACTORY_ADDRESS,
-    factoryArtifact.abi,
-    wallet
+  const bytecodeHash = utils.hashBytecode(aaArtifact.bytecode);
+
+  const factory = await deployer.deploy(
+    aaArtifact,
+    [bytecodeHash],
+    undefined,
+    [
+      // Since the factory requires the code of the multisig to be available,
+      // we should pass it here as well.
+      aaArtifact.bytecode,
+    ]
   );
 
-  // The two owners of the multisig
-  const owner1 = Wallet.createRandom();
-  // const owner2 = Wallet.createRandom();
+  console.log(`AA factory address: ${factory.address}`);
 
-  // For the simplicity of the tutorial, we will use zero hash as salt
-  const salt = ethers.constants.HashZero;
+  return factory;
+}
 
-  // deploy account owned by owner1 & owner2
-  const tx = await aaFactory.deployAccount(
+const deployFactory2 = async (deployer: Deployer) => {
+  // Deploy AccountFactory
+  const factoryArtifact = await deployer.loadArtifact("AAFactory");
+  const accountArtifact = await deployer.loadArtifact("AAccount");
+  const bytecodeHash = utils.hashBytecode(factoryArtifact.bytecode);
+
+  const factory = <Contract>(await deployer.deploy(
+    factoryArtifact, 
+    [bytecodeHash], 
+    undefined, 
+    [factoryArtifact.bytecode]
+  ));
+
+  return factory;
+}
+
+export async function deployAccount (wallet: Wallet, deployer: Deployer) {
+  const accountArtifact = await deployer.loadArtifact("AAccount");
+
+  const factory = await deployFactory(deployer.hre);
+
+  console.log(`AAfactory: "${factory.address}"`)
+
+  const salt = ethers.constants.HashZero; 
+  // const transaction = await (await factory.deployAccount(salt, wallet.address, GASLIMIT)).wait();
+
+  // await transaction.wait();
+  // console.log('tx', transaction);
+
+  // const xx = await utils.getDeployedContracts(transaction);
+
+  // console.log('xx', xx)
+  // const accountAddr = (await utils.getDeployedContracts(transaction))[0].deployedAddress
+  
+  // const accountContract = new ethers.Contract(accountAddr, accountArtifact.abi, wallet)
+  // console.log(`account: "${accountContract.address}",`)
+
+  const deployAATransaction = await (await factory.deployAccount(
     salt,
-    owner1.address
-  );
-  await tx.wait();
+    wallet.address
+  ));
 
-  // Getting the address of the deployed contract account
   const abiCoder = new ethers.utils.AbiCoder();
   const multisigAddress = utils.create2Address(
-    AA_FACTORY_ADDRESS,
-    await aaFactory.aaBytecodeHash(),
+    factory.address,
+    await factory.aaBytecodeHash(),
     salt,
-    abiCoder.encode(["address"], [owner1.address])
+    abiCoder.encode(["address"], [wallet.address])
   );
-  console.log("Owner PK & Address:", owner1.privateKey, owner1.address)
+  console.log("Owner PK & Address:", wallet.privateKey, wallet.address)
   console.log(`Account deployed on address ${multisigAddress}`);
+}
 
-  // console.log("Sending funds to multisig account");
-  // Send funds to the multisig account we just deployed
+export default async function (hre: HardhatRuntimeEnvironment) {
+  const provider = Provider.getDefaultProvider();
+
+  const wallet = new Wallet(RICH_WALLET_PK!).connect(provider);
+  const deployer = new Deployer(hre, wallet);
+
+  const account = await deployAccount(wallet, deployer);
+  console.log(account);
+
+  
+  // const walletBalance = await provider.getBalance(wallet.address);
+  // console.log('w address', wallet.address, walletBalance)
+
+  // const aaFactory = await deployFactory(hre);
+  
+
+  // // const owner = Wallet.createRandom();
+  // const owner = new Wallet(RICH_WALLET_OWNER_PK!).connect(provider);
+
+  // // For the simplicity of the tutorial, we will use zero hash as salt
+  // const salt = ethers.constants.HashZero;
+
+  // // deploy account owned by owner
+  // const deployAATransaction = await (await aaFactory.deployAccount(
+  //   salt,
+  //   owner.address
+  // ));
+
+  // // Getting the address of the deployed contract account
+  // const abiCoder = new ethers.utils.AbiCoder();
+  // const multisigAddress = utils.create2Address(
+  //   aaFactory.address,
+  //   await aaFactory.aaBytecodeHash(),
+  //   salt,
+  //   abiCoder.encode(["address"], [owner.address])
+  // );
+  // console.log("Owner PK & Address:", owner.privateKey, owner.address)
+  // console.log(`Account deployed on address ${multisigAddress}`);
+
+  // // console.log("Sending funds to multisig account");
+  // // Send funds to the multisig account we just deployed
   // await (
   //   await wallet.sendTransaction({
   //     to: multisigAddress,
@@ -56,85 +141,82 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
   // console.log(`Multisig account balance is ${multisigBalance.toString()}`);
 
-  // Transaction to deploy a new account using the multisig we just deployed
-  let aaTx = await aaFactory.populateTransaction.deployAccount(
-    salt,
-    // These are accounts that will own the newly deployed account
-    Wallet.createRandom().address
-  );
+  // // owner.address - OWNER OF MULTISIG ACCOUNT
 
-  const gasLimit = await provider.estimateGas(aaTx);
-  const gasPrice = await provider.getGasPrice();
 
-  aaTx = {
-    ...aaTx,
-    // deploy a new account using the multisig
-    from: multisigAddress,
-    gasLimit: gasLimit,
-    gasPrice: gasPrice,
-    chainId: (await provider.getNetwork()).chainId,
-    nonce: await provider.getTransactionCount(multisigAddress),
-    type: 113,
-    customData: {
-      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-    } as types.Eip712Meta,
-    value: ethers.BigNumber.from(0),
-  };
-  const signedTxHash = EIP712Signer.getSignedDigest(aaTx);
+  // const accountAddr = (await utils.getDeployedContracts(deployAATransaction))[0].deployedAddress
+  // const accountContract = new ethers.Contract(accountAddr, accountArtifact.abi, wallet)
 
-  // const signature = ethers.utils.concat([
-  //   // Note, that `signMessage` wouldn't work here, since we don't want
-  //   // the signed hash to be prefixed with `\x19Ethereum Signed Message:\n`
-  //   ethers.utils.joinSignature(owner1._signingKey().signDigest(signedTxHash)),
-  //   ethers.utils.joinSignature(owner2._signingKey().signDigest(signedTxHash)),
-  // ]);
+  // // Transaction to deploy a new account using the multisig we just deployed
+  // let aaTx = await aaFactory.populateTransaction.deployAccount(
+  //   salt,
+  //   // These are accounts that will own the newly deployed account
+  //   Wallet.createRandom().address
+  // );
 
-  aaTx.customData = {
-    ...aaTx.customData,
-    // customSignature: owner1._signingKey().signDigest(signedTxHash),
-    customSignature: ethers.utils.arrayify(ethers.utils.joinSignature(owner1._signingKey().signDigest(signedTxHash)))
-  };
+  // const gasLimit = await provider.estimateGas(aaTx);
+  // const gasPrice = await provider.getGasPrice();
 
-  const aaTx2 = {
-    ...aaTx,
-    // deploy a new account using the multisig
-    from: wallet.address,
-    to: multisigAddress,
-    gasLimit: gasLimit,
-    gasPrice: gasPrice,
-    chainId: (await provider.getNetwork()).chainId,
-    nonce: await provider.getTransactionCount(multisigAddress),
-    type: 113,
-    customData: {
-      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-    } as types.Eip712Meta,
-    value: ethers.BigNumber.from(0),
-  };
+  // aaTx = {
+  //   ...aaTx,
+  //   // deploy a new account using the multisig
+  //   from: multisigAddress,
+  //   gasLimit: gasLimit,
+  //   gasPrice: gasPrice,
+  //   chainId: (await provider.getNetwork()).chainId,
+  //   nonce: await provider.getTransactionCount(multisigAddress),
+  //   type: 113,
+  //   customData: {
+  //     gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+  //   } as types.Eip712Meta,
+  //   value: ethers.BigNumber.from(0),
+  // };
+  // const signedTxHash = EIP712Signer.getSignedDigest(aaTx);
 
-  console.log(
-    `The multisig's nonce before the first tx is ${await provider.getTransactionCount(
-      multisigAddress
-    )}`
-  );
+  // aaTx.customData = {
+  //   ...aaTx.customData,
+  //   customSignature: ethers.utils.arrayify(ethers.utils.joinSignature(owner._signingKey().signDigest(signedTxHash)))
+  // };
+
+  // const aaTx2 = {
+  //   ...aaTx,
+  //   from: wallet.address,
+  //   to: multisigAddress,
+  //   gasLimit: gasLimit,
+  //   gasPrice: gasPrice,
+  //   chainId: (await provider.getNetwork()).chainId,
+  //   nonce: await provider.getTransactionCount(multisigAddress),
+  //   type: 113,
+  //   customData: {
+  //     gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+  //   } as types.Eip712Meta,
+  //   value: ethers.BigNumber.from(0),
+  // };
+
+  // console.log(
+  //   `The multisig's nonce before the first tx is ${await provider.getTransactionCount(
+  //     multisigAddress
+  //   )}`
+  // );
   
-  await( await wallet.sendTransaction({
-    to: multisigAddress,
-    value: ethers.utils.parseEther('0.0002')
-  })).wait()
+  // await(await wallet.sendTransaction({
+  //   to: multisigAddress,
+  //   value: ethers.utils.parseEther('0.0002')
+  // })).wait()
 
-  let multisigBalance = await provider.getBalance(multisigAddress);
+  // multisigBalance = await provider.getBalance(multisigAddress);
 
-  console.log("new account balance:", multisigBalance.toString())
+  // console.log("new account balance:", multisigBalance.toString())
 
-  const sentTx = await provider.sendTransaction(utils.serialize(aaTx));
-  await sentTx.wait();
+  // const sentTx = await provider.sendTransaction(utils.serialize(aaTx));
+  // await sentTx.wait();
 
-  // Checking that the nonce for the account has increased
-  console.log(
-    `The multisig's nonce after the first tx is ${await provider.getTransactionCount(
-      multisigAddress
-    )}`
-  );
+  // // Checking that the nonce for the account has increased
+  // console.log(
+  //   `The multisig's nonce after the first tx is ${await provider.getTransactionCount(
+  //     multisigAddress
+  //   )}`
+  // );
   
   // multisigBalance = await provider.getBalance(multisigAddress);
 
