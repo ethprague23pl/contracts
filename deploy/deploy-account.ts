@@ -13,7 +13,8 @@ const RICH_WALLET_PK = process.env.PRIVATE_KEY;
 // HOW TO TRANSFER ETH FROM MULTISIG TO ANOTHER WALLET?
 // HOW TO INVOKE TRANSACTION USING MULTISIG ACC
 
-const AA_FACTORY_ADDRESS_LIVE = '0x50BFb217F72A4e00a65040d64120002C7798A393'
+const AA_FACTORY_ADDRESS_LIVE = '0x50BFb217F72A4e00a65040d64120002C7798A393';
+const EVENT_ADDRESS_LIVE = "0x6A6c2b0EaBBe0701D90b915482E150D032d76A1B";
 
 const deployFactory = async (hre: HardhatRuntimeEnvironment) => {
   // Private key of the account used to deploy
@@ -28,12 +29,14 @@ const deployFactory = async (hre: HardhatRuntimeEnvironment) => {
   const factory = await deployer.deploy(
     factoryArtifact,
     [bytecodeHash],
-    undefined,
+    {
+      gasLimit: ethers.utils.hexlify(10000000)
+    },
     [
       // Since the factory requires the code of the multisig to be available,
       // we should pass it here as well.
       aaArtifact.bytecode,
-    ]
+    ],
   );
 
   console.log(`AA factory address: ${factory.address}`);
@@ -111,11 +114,38 @@ export async function deployAccount (wallet: Wallet, deployer: Deployer) {
   // return accountContract;
 }
 
+export async function deployEvent (hre: HardhatRuntimeEnvironment) {
+  // Private key of the account used to deploy
+  const wallet = new Wallet(RICH_WALLET_PK!);
+  const deployer = new Deployer(hre, wallet);
+  const eventArtifact = await deployer.loadArtifact("Event");
+
+  const event = await deployer.deploy(
+    eventArtifact,
+    ["test-event", "test-key", 50],
+    {
+      gasLimit: ethers.utils.hexlify(10000000)
+    }
+  );
+
+  console.log(`Event address: ${event.address}`);
+
+  return event;
+}
+
 export default async function (hre: HardhatRuntimeEnvironment) {
   const provider = new Provider("https://zksync2-testnet.zksync.dev");
   const wallet = new Wallet(RICH_WALLET_PK!).connect(provider);
   const factoryArtifact = await hre.artifacts.readArtifact("AAFactory");
+  const aaArtifact = await hre.artifacts.readArtifact("XAAccount");
 
+  if(EVENT_ADDRESS_LIVE) {
+    const event = await deployEvent(hre);
+    console.log(event);
+  }
+
+  console.log(`Event address: ${EVENT_ADDRESS_LIVE}`);
+  
   // const factory = await deployFactory(hre);
   // console.log(factory.address)
 
@@ -125,77 +155,86 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     wallet
   );
 
-  const salt = ethers.constants.HashZero;
+  const randomWallet = Wallet.createRandom();
+
+  // const salt = ethers.constants.HashZero;
+  const salt = ethers.utils.hashMessage("kodziak1416@gmail.com");
   const tx = await aaFactory.deployAccount(
     salt,
-    wallet.address,
-    {
-      gasLimit: ethers.utils.hexlify(10000000)
-    }
+    randomWallet.address
   );
   await tx.wait();
 
   const abiCoder = new ethers.utils.AbiCoder();
-  const multisigAddress = utils.create2Address(
+  const aaAddress = utils.create2Address(
     aaFactory.address,
     await aaFactory.aaBytecodeHash(),
     salt,
-    abiCoder.encode(["address"], [wallet.address])
+    abiCoder.encode(["address"], [randomWallet.address])
   );
   console.log("Owner PK & Address:", wallet.privateKey, wallet.address)
-  console.log(`Account deployed on address ${multisigAddress}`);
+  console.log(`Account deployed on address ${aaAddress}`);
+
+  await(await wallet.sendTransaction({
+    to: aaAddress,
+    value: ethers.utils.parseEther('0.0005')
+  })).wait()
+
+  let multisigBalance = await provider.getBalance(aaAddress);
+
+  console.log("new account balance:", multisigBalance.toString())
+
+  const gasPrice = await provider.getGasPrice();
+
+  const aAccount = new ethers.Contract(
+    aaAddress,
+    aaArtifact.abi,
+    randomWallet
+  );
 
   let aaTx = await aaFactory.populateTransaction.deployAccount(
     salt,
-    // These are accounts that will own the newly deployed account
-    Wallet.createRandom().address
+    randomWallet.address
   );
-
-  const gasLimit = await provider.estimateGas(aaTx);
-  const gasPrice = await provider.getGasPrice();
 
   aaTx = {
     ...aaTx,
-    // deploy a new account using the multisig
-    from: multisigAddress,
-    gasLimit: gasLimit,
+    from: aaAddress,
+    to: wallet.address,
     gasPrice: gasPrice,
+    gasLimit: ethers.BigNumber.from(1000000),
     chainId: (await provider.getNetwork()).chainId,
-    nonce: await provider.getTransactionCount(multisigAddress),
+    nonce: await provider.getTransactionCount(aaAddress),
     type: 113,
     customData: {
       gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
     } as types.Eip712Meta,
-    value: ethers.BigNumber.from(0),
+    value: ethers.utils.parseEther('0.0002'),
+    data: "0x0000000000000000000000000000000000000000"
   };
+
+  console.log(EIP712Signer.getSignInput(aaTx));
+
   const signedTxHash = EIP712Signer.getSignedDigest(aaTx);
+  console.log(signedTxHash)
 
   aaTx.customData = {
     ...aaTx.customData,
-    customSignature: ethers.utils.arrayify(ethers.utils.joinSignature(wallet._signingKey().signDigest(signedTxHash)))
+    customSignature: ethers.utils.arrayify(ethers.utils.joinSignature(randomWallet._signingKey().signDigest(signedTxHash)))
   };
 
   console.log(
     `The multisig's nonce before the first tx is ${await provider.getTransactionCount(
-      multisigAddress
+      aaAddress
     )}`
   );
-  
-  await( await wallet.sendTransaction({
-    to: multisigAddress,
-    value: ethers.utils.parseEther('0.0002')
-  })).wait()
-
-  let multisigBalance = await provider.getBalance(multisigAddress);
-
-  console.log("new account balance:", multisigBalance.toString())
 
   const sentTx = await provider.sendTransaction(utils.serialize(aaTx));
   await sentTx.wait();
 
   console.log(
     `The multisig's nonce after the first tx is ${await provider.getTransactionCount(
-      multisigAddress
+      aaAddress
     )}`
   );
 }

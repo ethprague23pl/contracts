@@ -16,22 +16,26 @@ contract Event is
     string key = "";
     uint256 ticketsCount = 0;
 
-    constructor(string memory _name, string memory _key, uint256 _ticketsCount) ERC721A(eventName, key) {
-        eventName = _name;
-        key = _key;
+    // TODO:
+    // Proof of attendance
+    // Oznaczamy, ze dany bilet zostal uzyty
+
+    constructor(uint256 _ticketsCount, uint256 _price) ERC721A(eventName, key) {
         ticketsCount = _ticketsCount;
+        ticketprice = _price;
     }
 
     function numberMinted(address owner) public view returns (uint256) {
         return _numberMinted(owner);
     }
 
-    function mint(uint8 amount) public payable {
+    function buy(uint8 amount) public payable {
         require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
-        require(msg.value == ticketPrice, "ETH_AMOUNT_INVALID");
+        require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
         require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
 
         _safeMint(msg.sender, amount);
+        ticketsCount += amount;
     }
 
     function _baseURI() internal view virtual override(ERC721A) returns (string memory) {

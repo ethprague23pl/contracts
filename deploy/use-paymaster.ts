@@ -9,6 +9,7 @@ require("dotenv").config();
 // Put the address of the deployed paymaster and the Greeter Contract in the .env file
 const PAYMASTER_ADDRESS = process.env.PAYMASTER_ADDRESS;
 const GREETER_CONTRACT_ADDRESS = process.env.GREETER_CONTRACT;
+const EVENT_CONTRACT_ADDRESS = "0x6A6c2b0EaBBe0701D90b915482E150D032d76A1B";
 
 // Put the address of the ERC20 token in the .env file:
 const TOKEN_ADDRESS = process.env.TOKEN_ADDRESS;
@@ -24,12 +25,20 @@ function getGreeter(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
   return new ethers.Contract(GREETER_CONTRACT_ADDRESS, artifact.abi, wallet);
 }
 
+function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
+  const artifact = hre.artifacts.readArtifactSync("Event");
+  return new ethers.Contract(EVENT_CONTRACT_ADDRESS, artifact.abi, wallet);
+}
+
 // Wallet private key
 // ⚠️ Never commit private keys to file tracking history, or your account could be compromised.
 const EMPTY_WALLET_PRIVATE_KEY = process.env.EMPTY_WALLET_PRIVATE_KEY;
+// TODO: Consider change with one of AAs
+
+
 export default async function (hre: HardhatRuntimeEnvironment) {
-    const provider = new Provider("https://testnet.era.zksync.dev");
-    const emptyWallet = new Wallet(EMPTY_WALLET_PRIVATE_KEY, provider);
+    const provider = new Provider("https://zksync2-testnet.zksync.dev");
+    const emptyWallet = new Wallet(EMPTY_WALLET_PRIVATE_KEY!, provider);
 
   // Obviously this step is not required, but it is here purely to demonstrate that indeed the wallet has no ether.
   const ethBalance = await emptyWallet.getBalance();
