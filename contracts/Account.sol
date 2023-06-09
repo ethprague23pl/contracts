@@ -3,7 +3,6 @@ pragma solidity ^0.8.12;
 
 import "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
 import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
-import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
 // Used for signature validation
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -15,7 +14,7 @@ import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContrac
 import { SignatureChecker } from "@matterlabs/signature-checker/contracts/SignatureChecker.sol";
 import "hardhat/console.sol";
 
-contract AAccount is IAccount, IERC1271 {
+contract AAccount is IAccount {
     // to get transaction hash
     using TransactionHelper for Transaction;
     using SignatureChecker for address;
@@ -75,7 +74,7 @@ contract AAccount is IAccount, IERC1271 {
         uint256 totalRequiredBalance = _transaction.totalRequiredBalance();
         require(totalRequiredBalance <= address(this).balance, "Not enough balance for fee + value");
 
-        if (isValidSignature(txHash, _transaction.signature) == EIP1271_SUCCESS_RETURN_VALUE) {
+        if (isValidSignature(address(this), txHash, _transaction.signature)) {
             magic = ACCOUNT_VALIDATION_SUCCESS_MAGIC;
         }
     }
@@ -116,7 +115,7 @@ contract AAccount is IAccount, IERC1271 {
         _executeTransaction(_transaction);
     }
 
-        function isValidSignature(address _address, bytes32 _hash, bytes memory _signature)
+    function isValidSignature(address _address, bytes32 _hash, bytes memory _signature)
         public
         view
         returns (bool)

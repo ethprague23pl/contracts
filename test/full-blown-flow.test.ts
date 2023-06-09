@@ -45,8 +45,8 @@ describe("FULL BLOWN FLOW", () => {
     // const Paymaster = await deployer.loadArtifact("Paymaster");
     // paymaster = await deployer.deploy(Paymaster);
 
-    // const Event = await deployer.loadArtifact("Event");
-    // event = await deployer.deploy(Event, ["test-name", "test-key", 50]);
+    const Event = await deployer.loadArtifact("Event");
+    event = await deployer.deploy(Event, ["test-name", "test-key", 50]);
   })
 
   it('Deploy AAccount', async () => {
