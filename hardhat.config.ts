@@ -12,7 +12,7 @@ module.exports = {
       isSystem: true,
     }
   },
-  defaultNetwork: "zkSyncTestnet",
+  defaultNetwork: "zkSyncLocal",
 
   networks: {
     hardhat: {

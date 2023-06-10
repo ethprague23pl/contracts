@@ -30,7 +30,7 @@ contract Event is
 
     function numberMinted(address owner) public view returns (uint256) {
         return _numberMinted(owner);
-        emit TicketBought(address(this))
+        // emit TicketBought(address(this));
     }
 
     function getName() public view returns (string memory) {
@@ -41,21 +41,12 @@ contract Event is
         return _userName;
     }
 
-    function buyZero() public payable {
-        // require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
-        // require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
-        // require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
-
-        // _safeMint(msg.sender, amount);
-        // ticketsCount += amount;
-    }
-
     function buy(uint8 amount) public payable {
-        // require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
-        // require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
-        // require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
+        require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
+        require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
+        require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
 
-        _safeMint(msg.sender, amount);
+        _mint(msg.sender, amount);
         ticketsCount -= amount;
     }
 
