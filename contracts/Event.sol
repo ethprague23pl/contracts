@@ -17,6 +17,8 @@ contract Event is
     string key = "";
     uint256 ticketsCount = 0;
 
+    mapping(address => bool) proofsOfAttendance;
+
     // TODO:
     // Proof of attendance
     // Oznaczamy, ze dany bilet zostal uzyty
@@ -33,10 +35,6 @@ contract Event is
 
     function getName() public view returns (string memory) {
         return eventName;
-    }
-
-    function getUserName(string memory _userName) public view returns (string memory) {
-        return _userName;
     }
 
     function buy(uint8 amount) public payable {

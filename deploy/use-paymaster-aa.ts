@@ -1,29 +1,36 @@
-import { ContractFactory, EIP712Signer, Provider, types, utils, Wallet } from "zksync-web3";
-import * as ethers from "ethers";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
+import {
+  ContractFactory,
+  EIP712Signer,
+  Provider,
+  types,
+  utils,
+  Wallet,
+} from 'zksync-web3';
+import * as ethers from 'ethers';
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { Deployer } from '@matterlabs/hardhat-zksync-deploy';
 
-require("dotenv").config();
+require('dotenv').config();
 
 // Put the address of the deployed paymaster and the Greeter Contract in the .env file
-const PAYMASTER_ADDRESS = "0x2B3c9020E658d8b20F3ea46568b0c6Cb596C49E7";
-const EVENT_CONTRACT_ADDRESS = "0xfea4495f2541411B4460c69142cD63Cb0CB1A5Bc";
+const PAYMASTER_ADDRESS = '0x2B3c9020E658d8b20F3ea46568b0c6Cb596C49E7';
+const EVENT_CONTRACT_ADDRESS = '0xfea4495f2541411B4460c69142cD63Cb0CB1A5Bc';
 const AA_FACTORY_ADDRESS_LIVE = '0x50BFb217F72A4e00a65040d64120002C7798A393';
 const RICH_WALLET_PK = process.env.PRIVATE_KEY;
 
 // Wallet private key
 // ⚠️ Never commit private keys to file tracking history, or your account could be compromised.
-const EMPTY_WALLET_PRIVATE_KEY = Wallet.createRandom().privateKey
+const EMPTY_WALLET_PRIVATE_KEY = Wallet.createRandom().privateKey;
 
 function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
-  const artifact = hre.artifacts.readArtifactSync("Event");
+  const artifact = hre.artifacts.readArtifactSync('Event');
   return new ethers.Contract(EVENT_CONTRACT_ADDRESS, artifact.abi, wallet);
 }
 
 export default async function (hre: HardhatRuntimeEnvironment) {
-  const provider = new Provider("https://testnet.era.zksync.dev	");
+  const provider = new Provider('https://testnet.era.zksync.dev	');
   const emptyWallet = new Wallet(EMPTY_WALLET_PRIVATE_KEY!);
-  const wallet = new Wallet(RICH_WALLET_PK!).connect(provider);;
+  const wallet = new Wallet(RICH_WALLET_PK!).connect(provider);
   const deployer = new Deployer(hre, wallet);
 
   // Obviously this step is not required, but it is here purely to demonstrate that indeed the wallet has no ether.
@@ -37,8 +44,8 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   // const gasPrice = await provider.getGasPrice();
 
   // Loading the Paymaster Contract
-  const paymasterArtifact = await deployer.loadArtifact("Paymaster");
-  const factoryArtifact = await deployer.loadArtifact("AAFactory");
+  const paymasterArtifact = await deployer.loadArtifact('Paymaster');
+  const factoryArtifact = await deployer.loadArtifact('AAFactory');
 
   // const PaymasterFactory = new ContractFactory(
   //   paymasterArtifact.abi,
@@ -76,7 +83,6 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   // );
 
   // console.log(gasLimit)
-  
 
   // // Gas estimation:
   // const fee = gasPrice.mul(gasLimit.toString());
@@ -84,17 +90,14 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const aaFactory = new ethers.Contract(
     AA_FACTORY_ADDRESS_LIVE,
     factoryArtifact.abi,
-    wallet
+    wallet,
   );
 
   const randomWallet = Wallet.createRandom();
 
   // const salt = ethers.constants.HashZero;
-  const salt = ethers.utils.hashMessage("kodziak1416@gmail.com");
-  const tx = await aaFactory.deployAccount(
-    salt,
-    randomWallet.address
-  );
+  const salt = ethers.utils.hashMessage('kodziak1416@gmail.com');
+  const tx = await aaFactory.deployAccount(salt, randomWallet.address);
   await tx.wait();
 
   const abiCoder = new ethers.utils.AbiCoder();
@@ -102,68 +105,71 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     aaFactory.address,
     await aaFactory.aaBytecodeHash(),
     salt,
-    abiCoder.encode(["address"], [randomWallet.address])
+    abiCoder.encode(['address'], [randomWallet.address]),
   );
 
   console.log(`Account deployed on address ${aaAddress}`);
 
   // Encoding the "ApprovalBased" paymaster flow's input
   const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
-    type: "ApprovalBased",
+    type: 'ApprovalBased',
     token: EVENT_CONTRACT_ADDRESS,
     minimalAllowance: ethers.BigNumber.from(10000000000),
     innerInput: new Uint8Array(),
   });
 
-  console.log(paymasterParams)
+  console.log(paymasterParams);
 
   let buyTx = await event.populateTransaction.buy(1, {
-    value: ethers.utils.parseEther('0')
+    value: ethers.utils.parseEther('0'),
   });
 
   const gasLimit = await provider.estimateGas(buyTx);
   const gasPrice = await provider.getGasPrice();
 
-    // prepare deploy transaction
-    buyTx = {
-      ...buyTx,
-      from: aaAddress,
-      gasLimit: gasLimit,
-      gasPrice: gasPrice,
-      chainId: (await provider.getNetwork()).chainId,
-      nonce: await provider.getTransactionCount(aaAddress),
-      type: 113,
-      customData: {
-        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-        paymasterParams: {
-          paymaster: PAYMASTER_ADDRESS,
-          paymasterParams: paymasterParams,
-        },
+  // prepare deploy transaction
+  buyTx = {
+    ...buyTx,
+    from: aaAddress,
+    gasLimit: gasLimit,
+    gasPrice: gasPrice,
+    chainId: (await provider.getNetwork()).chainId,
+    nonce: await provider.getTransactionCount(aaAddress),
+    type: 113,
+    customData: {
+      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+      paymasterParams: {
+        paymaster: PAYMASTER_ADDRESS,
+        paymasterParams: paymasterParams,
       },
-      value: ethers.utils.parseEther('0'),
-    };
+    },
+    value: ethers.utils.parseEther('0'),
+  };
 
-    if (buyTx.gasLimit == undefined) {
-      buyTx.gasLimit = await provider.estimateGas(buyTx);
-    }
+  if (buyTx.gasLimit == undefined) {
+    buyTx.gasLimit = await provider.estimateGas(buyTx);
+  }
 
-    const signedTxHash = EIP712Signer.getSignedDigest(buyTx);
+  const signedTxHash = EIP712Signer.getSignedDigest(buyTx);
 
-    buyTx.customData = {
-      ...buyTx.customData,
-      customSignature: ethers.utils.arrayify(ethers.utils.joinSignature(randomWallet._signingKey().signDigest(signedTxHash)))
-    };
+  buyTx.customData = {
+    ...buyTx.customData,
+    customSignature: ethers.utils.arrayify(
+      ethers.utils.joinSignature(
+        randomWallet._signingKey().signDigest(signedTxHash),
+      ),
+    ),
+  };
 
   console.log(
     `The multisig's nonce before the first tx is ${await provider.getTransactionCount(
-      aaAddress
-    )}`
+      aaAddress,
+    )}`,
   );
 
   const sentTx = await provider.sendTransaction(utils.serialize(buyTx));
 
   console.log(sentTx);
-
 
   // await (
   //   await event

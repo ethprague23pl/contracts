@@ -1,11 +1,10 @@
-import { ContractFactory, Provider, Wallet, utils } from "zksync-web3";
-import * as ethers from "ethers";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { deployAAFactory, deployAccount } from "./utils/deploy";
-import {sendTx} from './utils/sendTX';
-import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
+import { ContractFactory, Provider, Wallet, utils } from 'zksync-web3';
+import * as ethers from 'ethers';
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { deployAAFactory, deployAccount } from './utils/deploy';
+import { Deployer } from '@matterlabs/hardhat-zksync-deploy';
 
-require("dotenv").config();
+require('dotenv').config();
 
 // Put the address of the deployed paymaster and the Greeter Contract in the .env file
 // const PAYMASTER_ADDRESS = "0xE21a69457F71b25E42E0EFcEC9007b3AC99213E9";
@@ -13,7 +12,10 @@ require("dotenv").config();
 // const AA_FACTORY_ADDRESS_LIVE = '0xf697da1ee9FbC53e53438F5722a094f7EcB9328d';
 // const USDC_MOCK_ADDRESS = '0x44506EB966EF8c03F8618ecc4eCA3FD50e628a23'
 
-const WALLET = process.env.NODE_ENV === 'test' ? '0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110' : process.env.PRIVATE_KEY;
+const WALLET =
+  process.env.NODE_ENV === 'test'
+    ? '0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110'
+    : process.env.PRIVATE_KEY;
 
 // function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
 //   const artifact = hre.artifacts.readArtifactSync("Event");
@@ -26,7 +28,7 @@ const WALLET = process.env.NODE_ENV === 'test' ? '0x7726827caac94a7f9e1b160f7ea8
 // }
 
 export default async function (hre: HardhatRuntimeEnvironment) {
-  const provider = new Provider("https://testnet.era.zksync.dev	");
+  const provider = new Provider('https://testnet.era.zksync.dev	');
   // const provider = new Provider("http://localhost:3050/");
   const wallet = new Wallet(WALLET!, provider);
   const deployer1 = new Deployer(hre, wallet);
@@ -38,15 +40,15 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   console.log(`Empty wallet's private key: ${randomWallet.privateKey}`);
 
   // Deploying the Event
-  const eventArtifact = await deployer1.loadArtifact("Event");
+  const eventArtifact = await deployer1.loadArtifact('Event');
   const event = await deployer1.deploy(eventArtifact, [100, 0]);
   console.log(`Event address: ${event.address}`);
 
   const factory = await deployAAFactory(wallet);
-  console.log('Factory address:', factory.address)
+  console.log('Factory address:', factory.address);
 
   const account = await deployAccount(wallet, randomWallet, factory.address);
-  console.log('AAccount address:', account.address)
+  console.log('AAccount address:', account.address);
 
   // // INFO: SEND TX TO ACCOUNT ABSTRACTION
   // await(await wallet.sendTransaction({
@@ -71,109 +73,107 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   // console.log(r)
 
   // Deploying the ERC20 token
-  const erc20Artifact = await deployer1.loadArtifact("USDCMOCK");
-  const erc20 = await deployer1.deploy(erc20Artifact, ["USDC", "USDC", 18]);
+  const erc20Artifact = await deployer1.loadArtifact('USDCMOCK');
+  const erc20 = await deployer1.deploy(erc20Artifact, ['USDC', 'USDC', 18]);
   console.log(`ERC20 address: ${erc20.address}`);
 
   // Deploying the paymaster
-  const paymasterArtifact = await deployer1.loadArtifact("NewPaymaster");
+  const paymasterArtifact = await deployer1.loadArtifact('NewPaymaster');
   const paymaster = await deployer1.deploy(paymasterArtifact, [erc20.address]);
   console.log(`Paymaster address: ${paymaster.address}`);
 
-   // Supplying paymaster with ETH.
-   await (
+  // Supplying paymaster with ETH.
+  await (
     await deployer1.zkWallet.sendTransaction({
       to: paymaster.address,
-      value: ethers.utils.parseEther("0.0005"),
+      value: ethers.utils.parseEther('0.0005'),
     })
   ).wait();
 
-  // Setting the dAPIs in Paymaster. Head over to the API3 Market (https://market.api3.org) 
+  // Setting the dAPIs in Paymaster. Head over to the API3 Market (https://market.api3.org)
   // to verify dAPI proxy contract addresses and whether they're funded or not.
-  const ETHUSDdAPI = "0x28ce555ee7a3daCdC305951974FcbA59F5BdF09b";
-  const USDCUSDdAPI = "0x946E3232Cc18E812895A8e83CaE3d0caA241C2AB";
-  const setProxy = paymaster.setDapiProxy(USDCUSDdAPI, ETHUSDdAPI)
-  await (await setProxy).wait()
-  console.log("dAPI Proxies Set!");
+  const ETHUSDdAPI = '0x28ce555ee7a3daCdC305951974FcbA59F5BdF09b';
+  const USDCUSDdAPI = '0x946E3232Cc18E812895A8e83CaE3d0caA241C2AB';
+  const setProxy = paymaster.setDapiProxy(USDCUSDdAPI, ETHUSDdAPI);
+  await (await setProxy).wait();
+  console.log('dAPI Proxies Set!');
 
-    // Supplying the ERC20 tokens to the empty wallet:
-    // We will give the empty wallet 5k mUSDC:
-    await (await erc20.mint(randomWallet.address, "5000000000000000000000")).wait();
-    await (await erc20.mint(paymaster.address, "5000000000000000000000")).wait();
-  
-    console.log("Minted 5k mUSDC for the empty wallet");
+  // Supplying the ERC20 tokens to the empty wallet:
+  // We will give the empty wallet 5k mUSDC:
+  await (
+    await erc20.mint(randomWallet.address, '5000000000000000000000')
+  ).wait();
+  await (await erc20.mint(paymaster.address, '5000000000000000000000')).wait();
 
-    
-    const erc20Balance = await erc20.balanceOf(randomWallet.address);
-    console.log(`ERC20 balance of the user before tx: ${erc20Balance}`);
-  
-    const PaymasterFactory = new ContractFactory(
-      paymasterArtifact.abi,
-      paymasterArtifact.bytecode,
-      deployer1.zkWallet
-    );
-    const PaymasterContract = PaymasterFactory.attach(paymaster.address);
+  console.log('Minted 5k mUSDC for the empty wallet');
 
-    // Estimate gas fee for the transaction
-  const gasLimit = await event.estimateGas.buy(
-    1,
-    {
-      customData: {
-        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-        paymasterParams: utils.getPaymasterParams(paymaster.address, {
-          type: "ApprovalBased",
-          token: erc20.address,
-          // Set a large allowance just for estimation
-          minimalAllowance: ethers.BigNumber.from(`100000000000000000000`),
-          // Empty bytes as testnet paymaster does not use innerInput
-          innerInput: new Uint8Array(),
-        }),
-      },
-    }
+  const erc20Balance = await erc20.balanceOf(randomWallet.address);
+  console.log(`ERC20 balance of the user before tx: ${erc20Balance}`);
+
+  const PaymasterFactory = new ContractFactory(
+    paymasterArtifact.abi,
+    paymasterArtifact.bytecode,
+    deployer1.zkWallet,
   );
+  const PaymasterContract = PaymasterFactory.attach(paymaster.address);
+
+  // Estimate gas fee for the transaction
+  const gasLimit = await event.estimateGas.buy(1, {
+    customData: {
+      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+      paymasterParams: utils.getPaymasterParams(paymaster.address, {
+        type: 'ApprovalBased',
+        token: erc20.address,
+        // Set a large allowance just for estimation
+        minimalAllowance: ethers.BigNumber.from(`100000000000000000000`),
+        // Empty bytes as testnet paymaster does not use innerInput
+        innerInput: new Uint8Array(),
+      }),
+    },
+  });
 
   console.log(gasLimit);
   const gasPrice = await provider.getGasPrice();
 
-    // Gas estimation:
-    const fee = gasPrice.mul(gasLimit.toString());
-    console.log(`Estimated ETH FEE (gasPrice * gasLimit): ${fee}`);
-  
-    // Calling the dAPI to get the ETH price:
-    const ETHUSD = await PaymasterContract.readDapi(
-      "0x28ce555ee7a3daCdC305951974FcbA59F5BdF09b"
-    );
-    const USDCUSD = await PaymasterContract.readDapi(
-      "0x946E3232Cc18E812895A8e83CaE3d0caA241C2AB"
-    );
+  // Gas estimation:
+  const fee = gasPrice.mul(gasLimit.toString());
+  console.log(`Estimated ETH FEE (gasPrice * gasLimit): ${fee}`);
 
-    // Checks old allowance (for testing purposes):
-    const checkSetAllowance = await erc20.allowance(
-      randomWallet.address,
-      paymaster.address
-    );
-    console.log(`ERC20 allowance for paymaster : ${checkSetAllowance}`);
+  // Calling the dAPI to get the ETH price:
+  const ETHUSD = await PaymasterContract.readDapi(
+    '0x28ce555ee7a3daCdC305951974FcbA59F5BdF09b',
+  );
+  const USDCUSD = await PaymasterContract.readDapi(
+    '0x946E3232Cc18E812895A8e83CaE3d0caA241C2AB',
+  );
 
-    console.log(`ETH/USD dAPI Value: ${ETHUSD}`);
-    console.log(`USDC/USD dAPI Value: ${USDCUSD}`);
+  // Checks old allowance (for testing purposes):
+  const checkSetAllowance = await erc20.allowance(
+    randomWallet.address,
+    paymaster.address,
+  );
+  console.log(`ERC20 allowance for paymaster : ${checkSetAllowance}`);
 
-    // Calculating the USD fee:
-    const usdFee = fee.mul(ETHUSD).div(USDCUSD);
-    console.log(`Estimated USD FEE: ${usdFee}`);
+  console.log(`ETH/USD dAPI Value: ${ETHUSD}`);
+  console.log(`USDC/USD dAPI Value: ${USDCUSD}`);
 
-    console.log(`Current name is: ${await event.getName()}`);
+  // Calculating the USD fee:
+  const usdFee = fee.mul(ETHUSD).div(USDCUSD);
+  console.log(`Estimated USD FEE: ${usdFee}`);
 
-    // Encoding the "ApprovalBased" paymaster flow's input
-    const paymasterParams = utils.getPaymasterParams(paymaster.address, {
-      type: "ApprovalBased",
-      token: erc20.address,
-      // set minimalAllowance to the estimated fee in erc20
-      minimalAllowance: ethers.BigNumber.from(usdFee),
-      // empty bytes as testnet paymaster does not use innerInput
-      innerInput: new Uint8Array(),
-    });
+  console.log(`Current name is: ${await event.getName()}`);
 
-    console.log(paymasterParams);
+  // Encoding the "ApprovalBased" paymaster flow's input
+  const paymasterParams = utils.getPaymasterParams(paymaster.address, {
+    type: 'ApprovalBased',
+    token: erc20.address,
+    // set minimalAllowance to the estimated fee in erc20
+    minimalAllowance: ethers.BigNumber.from(usdFee),
+    // empty bytes as testnet paymaster does not use innerInput
+    innerInput: new Uint8Array(),
+  });
+
+  console.log(paymasterParams);
 
   // console.log(`Message in contract now is: ${await event.ownerOf(emptyWallet.address)}`);
 }
