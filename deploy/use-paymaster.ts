@@ -8,8 +8,8 @@ require("dotenv").config();
 
 // Put the address of the deployed paymaster and the Greeter Contract in the .env file
 const PAYMASTER_ADDRESS = "0x2B3c9020E658d8b20F3ea46568b0c6Cb596C49E7";
-const EVENT_CONTRACT_ADDRESS = "0xfea4495f2541411B4460c69142cD63Cb0CB1A5Bc";
-const AA_FACTORY_ADDRESS_LIVE = '0x50BFb217F72A4e00a65040d64120002C7798A393';
+const EVENT_CONTRACT_ADDRESS = "0xf7540AfbaF8524d64Be38BAb83B2fDB0a8a1A704";
+const AA_FACTORY_ADDRESS_LIVE = '0xf697da1ee9FbC53e53438F5722a094f7EcB9328d';
 
 const WALLET = process.env.PRIVATE_KEY;
 
@@ -25,9 +25,9 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const event = getEvent(hre, wallet);
   const randomWallet = Wallet.createRandom();
 
-  // const factory = await deployAAFactory(wallet);
-  // console.log('factory')
-  const account = await deployAccount(wallet, randomWallet, AA_FACTORY_ADDRESS_LIVE);
+  const factory = await deployAAFactory(wallet);
+  console.log('factory', factory.address)
+  const account = await deployAccount(wallet, randomWallet, factory.address);
   console.log('account', account.address)
 
   await(await wallet.sendTransaction({
@@ -43,6 +43,12 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
   const resp = await sendTx(provider, account, randomWallet, tx);
   await resp.wait();
+
+  const numberMintedTx = await event.populateTransaction.numberMinted(account.address)
+
+  const respMinted = await sendTx(provider, account, randomWallet, numberMintedTx);
+  const r = await respMinted.wait();
+  console.log(r)
 
   // let ownerOf = await event.populateTransaction.balanceOf(account.address, {
   //     value: ethers.utils.parseEther('0')

@@ -37,13 +37,22 @@ contract Event is
         return _userName;
     }
 
-    function buy(uint8 amount) public payable {
-        require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
-        require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
-        require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
+    function buyZero() public payable {
+        // require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
+        // require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
+        // require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
 
-        _safeMint(msg.sender, amount);
-        ticketsCount += amount;
+        // _safeMint(msg.sender, amount);
+        // ticketsCount += amount;
+    }
+
+    function buy(uint8 amount) public payable {
+        // require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
+        // require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
+        // require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
+
+        // _safeMint(msg.sender, amount);
+        // ticketsCount += amount;
     }
 
     function _baseURI() internal view virtual override(ERC721A) returns (string memory) {

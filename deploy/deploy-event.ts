@@ -14,7 +14,7 @@ export default async function deployEvent (hre: HardhatRuntimeEnvironment) {
   
     const event = await deployer.deploy(
       eventArtifact,
-      [100, 0.0001],
+      [100, 0],
       {
         gasLimit: ethers.utils.hexlify(10000000)
       }

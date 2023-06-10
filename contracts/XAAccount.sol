@@ -122,8 +122,12 @@ contract XAAccount is IAccount, IERC1271 {
                     0,
                     0
                 )
+
+                if iszero(success) {
+                    revert(0, returndatasize())
+                }
             }
-            require(success);
+            
         }
     }
 

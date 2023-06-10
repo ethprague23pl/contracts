@@ -26,9 +26,15 @@ export async function sendTx(
     } as types.Eip712Meta,
   };
 
+  console.log(tx);
+
+  if(tx.value === undefined) {
+    tx.value = ethers.utils.parseEther('0')
+  }
+
   if (tx.gasLimit == undefined) {
-    // tx.gasLimit = await provider.estimateGas(tx);
-    tx.gasLimit = ethers.BigNumber.from(1000000)
+    tx.gasLimit = await provider.estimateGas(tx);
+    // tx.gasLimit = ethers.BigNumber.from(10000000)
   }
 
   const signedTxHash = EIP712Signer.getSignedDigest(tx);
