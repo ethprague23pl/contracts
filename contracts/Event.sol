@@ -4,14 +4,15 @@ pragma solidity ^0.8.16;
 import "erc721a/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IEvent.sol";
+import "erc721a/contracts/extensions/ERC721AQueryable.sol";
+import "erc721a/contracts/extensions/IERC721AQueryable.sol";
 import "./ProxyEvent.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract Event is
     Ownable,
     ERC721A,
-    IEvent,
-    ProxyEvent
+    IEvent
 {
 
     using Counters for Counters.Counter;
@@ -44,11 +45,6 @@ contract Event is
         proxyEventContract = _proxyEventContract;
 
         tokenIdCounter.increment();
-    }
-
-    function numberMinted(address owner) public view returns (uint256) {
-        return _numberMinted(owner);
-        // emit TicketBought(address(this));
     }
 
     function getName() public view returns (string memory) {
@@ -108,4 +104,9 @@ contract Event is
     function _startTokenId() internal view virtual override(ERC721A) returns (uint256) {
         return 1;
     }
+
+    function _tokensOfOwner(address owner) external view returns(uint256[]) {
+        return (tokensOfOwner(owner));
+    }
+    
 }
