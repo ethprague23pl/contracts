@@ -35,12 +35,11 @@ function getEvent(
 export default async function (hre: HardhatRuntimeEnvironment) {
   const provider = new Provider('https://testnet.era.zksync.dev');
   // const provider = new Provider("http://localhost:3050/");
+
   const wallet = new Wallet(WALLET!, provider);
   const deployer1 = new Deployer(hre, wallet);
   const randomWallet = Wallet.createRandom();
   const newWallet = new Wallet(randomWallet.privateKey, provider);
-  // Loading the Paymaster Contract
-  const deployer = new Deployer(hre, randomWallet);
 
   console.log(`Empty wallet's address: ${randomWallet.address}`);
   console.log(`Empty wallet's private key: ${randomWallet.privateKey}`);
