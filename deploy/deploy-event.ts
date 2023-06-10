@@ -1,4 +1,4 @@
-import { utils, Wallet, Provider, EIP712Signer, types, Contract } from "zksync-web3";
+import { Wallet } from "zksync-web3";
 import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
@@ -14,7 +14,7 @@ export default async function deployEvent (hre: HardhatRuntimeEnvironment) {
   
     const event = await deployer.deploy(
       eventArtifact,
-      ["100", "2"],
+      [100, 0.0001],
       {
         gasLimit: ethers.utils.hexlify(10000000)
       }

@@ -70,33 +70,11 @@ contract Paymaster is IPaymaster, Ownable {
 
             require(existsInArray(token), "Token not supported");
 
-            // We verify that the user has provided enough allowance
-            address userAddress = address(uint160(_transaction.from));
-            address thisAddress = address(this);
-
-            uint256 providedAllowance = IERC20(token).allowance(
-                userAddress,
-                thisAddress
-            );
-
             requiredETH = _transaction.gasLimit * _transaction.maxFeePerGas;
             require(
                 providedAllowance >= requiredETH,
                 "Min paying allowance too low"
             );
-            // Note, that while the minimal amount of ETH needed is tx.gasPrice * tx.gasLimit,
-            // neither paymaster nor account are allowed to access this context variable.
-            try
-                IERC20(token).transferFrom(userAddress, thisAddress, requiredETH)
-            {} catch (bytes memory revertReason) {
-                if (revertReason.length <= 4) {
-                    revert("Failed to transferFrom from users' account");
-                } else {
-                    assembly {
-                        revert(add(0x20, revertReason), mload(revertReason))
-                    }
-                }
-            }
 
             // The bootloader never returns any data, so it can safely be ignored here.
             (bool success, ) = payable(BOOTLOADER_FORMAL_ADDRESS).call{

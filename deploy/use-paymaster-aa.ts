@@ -1,25 +1,86 @@
-import { utils, Wallet, Provider, EIP712Signer, types, Contract } from "zksync-web3";
+import { ContractFactory, EIP712Signer, Provider, types, utils, Wallet } from "zksync-web3";
 import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
 
-require('dotenv').config();
+require("dotenv").config();
+
+// Put the address of the deployed paymaster and the Greeter Contract in the .env file
+const PAYMASTER_ADDRESS = "0x2B3c9020E658d8b20F3ea46568b0c6Cb596C49E7";
+const EVENT_CONTRACT_ADDRESS = "0xfea4495f2541411B4460c69142cD63Cb0CB1A5Bc";
+const AA_FACTORY_ADDRESS_LIVE = '0x50BFb217F72A4e00a65040d64120002C7798A393';
 const RICH_WALLET_PK = process.env.PRIVATE_KEY;
 
-const AA_FACTORY_ADDRESS_LIVE = '0x50BFb217F72A4e00a65040d64120002C7798A393';
-const EVENT_ADDRESS_LIVE = "0x6A6c2b0EaBBe0701D90b915482E150D032d76A1B";
+// Wallet private key
+// ⚠️ Never commit private keys to file tracking history, or your account could be compromised.
+const EMPTY_WALLET_PRIVATE_KEY = Wallet.createRandom().privateKey
+
+function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
+  const artifact = hre.artifacts.readArtifactSync("Event");
+  return new ethers.Contract(EVENT_CONTRACT_ADDRESS, artifact.abi, wallet);
+}
 
 export default async function (hre: HardhatRuntimeEnvironment) {
   const provider = new Provider("https://zksync2-testnet.zksync.dev");
-  const wallet = new Wallet(RICH_WALLET_PK!).connect(provider);
-  const factoryArtifact = await hre.artifacts.readArtifact("AAFactory");
-  const aaArtifact = await hre.artifacts.readArtifact("XAAccount");
+  const emptyWallet = new Wallet(EMPTY_WALLET_PRIVATE_KEY!);
+  const wallet = new Wallet(RICH_WALLET_PK!).connect(provider);;
+  const deployer = new Deployer(hre, wallet);
 
-  console.log(`Event address: ${EVENT_ADDRESS_LIVE}`);
+  // Obviously this step is not required, but it is here purely to demonstrate that indeed the wallet has no ether.
+  // const ethBalance = await emptyWallet.getBalance();
+  // if (!ethBalance.eq(0)) {
+  //   throw new Error("The wallet is not empty");
+  // }
+
+  const event = getEvent(hre, emptyWallet);
+
+  // const gasPrice = await provider.getGasPrice();
+
+  // Loading the Paymaster Contract
+  const paymasterArtifact = await deployer.loadArtifact("Paymaster");
+  const factoryArtifact = await deployer.loadArtifact("AAFactory");
+
+  // const PaymasterFactory = new ContractFactory(
+  //   paymasterArtifact.abi,
+  //   paymasterArtifact.bytecode,
+  //   deployer.zkWallet
+  // );
+  // const PaymasterContract = PaymasterFactory.attach(PAYMASTER_ADDRESS);
+
+  // // Estimate gas fee for the transaction
+  // const gasLimit = await event.estimateGas.buy(
+  //   1,
+  //   {
+  //     // customData: {
+  //     //   gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+  //     //   paymasterParams: utils.getPaymasterParams(PAYMASTER_ADDRESS, {
+  //     //     type: "ApprovalBased",
+  //     //     token: TOKEN_ADDRESS,
+  //     //     // Set a large allowance just for estimation
+  //     //     minimalAllowance: ethers.BigNumber.from(`100000000000000000000`),
+  //     //     // Empty bytes as testnet paymaster does not use innerInput
+  //     //     innerInput: new Uint8Array(),
+  //     //   }),
+  //     // },
+  //     customData: {
+  //       gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+  //       paymasterParams: utils.getPaymasterParams(PAYMASTER_ADDRESS, {
+  //         type: "ApprovalBased",
+  //         token: EVENT_CONTRACT_ADDRESS,
+  //         minimalAllowance: ethers.BigNumber.from(`100000000000000000000`),
+  //         // Empty bytes as testnet paymaster does not use innerInput
+  //         innerInput: new Uint8Array(),
+  //       }),
+  //     },
+  //   }
+  // );
+
+  // console.log(gasLimit)
   
-  // const factory = await deployFactory(hre);
-  // console.log(factory.address)
 
+  // // Gas estimation:
+  // const fee = gasPrice.mul(gasLimit.toString());
+  // console.log(`Estimated ETH FEE (gasPrice * gasLimit): ${fee}`);
   const aaFactory = new ethers.Contract(
     AA_FACTORY_ADDRESS_LIVE,
     factoryArtifact.abi,
@@ -43,56 +104,55 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     salt,
     abiCoder.encode(["address"], [randomWallet.address])
   );
-  console.log("Owner PK & Address:", wallet.privateKey, wallet.address)
+
   console.log(`Account deployed on address ${aaAddress}`);
 
-  await(await wallet.sendTransaction({
-    to: aaAddress,
-    value: ethers.utils.parseEther('0.0005')
-  })).wait()
+  // Encoding the "ApprovalBased" paymaster flow's input
+  const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
+    type: "ApprovalBased",
+    token: EVENT_CONTRACT_ADDRESS,
+    minimalAllowance: ethers.BigNumber.from(10000000000),
+    innerInput: new Uint8Array(),
+  });
 
-  let multisigBalance = await provider.getBalance(aaAddress);
+  console.log(paymasterParams)
 
-  console.log("new account balance:", multisigBalance.toString())
+  let buyTx = await event.populateTransaction.buy(1, {
+    value: ethers.utils.parseEther('0')
+  });
 
+  const gasLimit = await provider.estimateGas(buyTx);
   const gasPrice = await provider.getGasPrice();
 
-  const aAccount = new ethers.Contract(
-    aaAddress,
-    aaArtifact.abi,
-    randomWallet
-  );
+    // prepare deploy transaction
+    buyTx = {
+      ...buyTx,
+      from: aaAddress,
+      gasLimit: gasLimit,
+      gasPrice: gasPrice,
+      chainId: (await provider.getNetwork()).chainId,
+      nonce: await provider.getTransactionCount(aaAddress),
+      type: 113,
+      customData: {
+        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+        paymasterParams: {
+          paymaster: PAYMASTER_ADDRESS,
+          paymasterParams: paymasterParams,
+        },
+      },
+      value: ethers.utils.parseEther('0'),
+    };
 
-  let aaTx = await aaFactory.populateTransaction.deployAccount(
-    salt,
-    randomWallet.address
-  );
+    if (buyTx.gasLimit == undefined) {
+      buyTx.gasLimit = await provider.estimateGas(buyTx);
+    }
 
-  aaTx = {
-    ...aaTx,
-    from: aaAddress,
-    to: wallet.address,
-    gasPrice: gasPrice,
-    gasLimit: ethers.BigNumber.from(1000000),
-    chainId: (await provider.getNetwork()).chainId,
-    nonce: await provider.getTransactionCount(aaAddress),
-    type: 113,
-    customData: {
-      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-    } as types.Eip712Meta,
-    value: ethers.utils.parseEther('0.0002'),
-    data: "0x0000000000000000000000000000000000000000"
-  };
+    const signedTxHash = EIP712Signer.getSignedDigest(buyTx);
 
-  console.log(EIP712Signer.getSignInput(aaTx));
-
-  const signedTxHash = EIP712Signer.getSignedDigest(aaTx);
-  console.log(signedTxHash)
-
-  aaTx.customData = {
-    ...aaTx.customData,
-    customSignature: ethers.utils.arrayify(ethers.utils.joinSignature(randomWallet._signingKey().signDigest(signedTxHash)))
-  };
+    buyTx.customData = {
+      ...buyTx.customData,
+      customSignature: ethers.utils.arrayify(ethers.utils.joinSignature(randomWallet._signingKey().signDigest(signedTxHash)))
+    };
 
   console.log(
     `The multisig's nonce before the first tx is ${await provider.getTransactionCount(
@@ -100,12 +160,30 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     )}`
   );
 
-  const sentTx = await provider.sendTransaction(utils.serialize(aaTx));
-  await sentTx.wait();
+  const sentTx = await provider.sendTransaction(utils.serialize(buyTx));
 
-  console.log(
-    `The multisig's nonce after the first tx is ${await provider.getTransactionCount(
-      aaAddress
-    )}`
-  );
+  console.log(sentTx);
+
+
+  // await (
+  //   await event
+  //     .connect(emptyWallet)
+  //     .buy(1, {
+
+  //       // specify gas values
+  //       maxFeePerGas: gasPrice,
+  //       maxPriorityFeePerGas: 0,
+  //       gasLimit: ethers.BigNumber.from(1000000),
+  //       // paymaster info
+  //       customData: {
+  //         paymasterParams: paymasterParams,
+  //         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+  //       },
+  //     })
+  // ).wait();
+
+  // const res = await provider.getBalance(emptyWallet.address);
+
+  // console.log(`ETH Balance of the user after tx: ${res}`);
+  // console.log(`Message in contract now is: ${await event.ownerOf(emptyWallet.address)}`);
 }

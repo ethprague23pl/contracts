@@ -122,7 +122,7 @@ export async function deployEvent (hre: HardhatRuntimeEnvironment) {
 
   const event = await deployer.deploy(
     eventArtifact,
-    ["test-event", "test-key", 50],
+    [50, 0],
     {
       gasLimit: ethers.utils.hexlify(10000000)
     }
@@ -186,19 +186,7 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
   const gasPrice = await provider.getGasPrice();
 
-  const aAccount = new ethers.Contract(
-    aaAddress,
-    aaArtifact.abi,
-    randomWallet
-  );
-
-  let aaTx = await aaFactory.populateTransaction.deployAccount(
-    salt,
-    randomWallet.address
-  );
-
-  aaTx = {
-    ...aaTx,
+  let aaTx = {
     from: aaAddress,
     to: wallet.address,
     gasPrice: gasPrice,
@@ -210,7 +198,7 @@ export default async function (hre: HardhatRuntimeEnvironment) {
       gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
     } as types.Eip712Meta,
     value: ethers.utils.parseEther('0.0002'),
-    data: "0x0000000000000000000000000000000000000000"
+    data: "0x"
   };
 
   console.log(EIP712Signer.getSignInput(aaTx));
