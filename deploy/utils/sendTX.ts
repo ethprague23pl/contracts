@@ -20,14 +20,15 @@ export async function sendTx(
     chainId: (await provider.getNetwork()).chainId,
     nonce: await provider.getTransactionCount(account.address),
     type: 113,
+    gasPrice: await provider.getGasPrice(),
     customData: {
       gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
     } as types.Eip712Meta,
   };
 
-  tx.gasPrice = await provider.getGasPrice();
   if (tx.gasLimit == undefined) {
-    tx.gasLimit = await provider.estimateGas(tx);
+    // tx.gasLimit = await provider.estimateGas(tx);
+    tx.gasLimit = ethers.BigNumber.from(1000000)
   }
 
   const signedTxHash = EIP712Signer.getSignedDigest(tx);

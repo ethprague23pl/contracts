@@ -1,17 +1,16 @@
-import { ContractFactory, Provider, types, utils, Wallet } from "zksync-web3";
+import { Provider, Wallet } from "zksync-web3";
 import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
+import { deployAAFactory, deployAccount } from "./utils/deploy";
+import {sendTx} from './utils/sendTX';
 
 require("dotenv").config();
 
 // Put the address of the deployed paymaster and the Greeter Contract in the .env file
 const PAYMASTER_ADDRESS = "0x2B3c9020E658d8b20F3ea46568b0c6Cb596C49E7";
 const EVENT_CONTRACT_ADDRESS = "0xfea4495f2541411B4460c69142cD63Cb0CB1A5Bc";
+const AA_FACTORY_ADDRESS_LIVE = '0x50BFb217F72A4e00a65040d64120002C7798A393';
 
-// Wallet private key
-// ⚠️ Never commit private keys to file tracking history, or your account could be compromised.
-const EMPTY_WALLET_PRIVATE_KEY = Wallet.createRandom().privateKey
 const WALLET = process.env.PRIVATE_KEY;
 
 function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
@@ -20,74 +19,85 @@ function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
 }
 
 export default async function (hre: HardhatRuntimeEnvironment) {
-  const provider = new Provider("http://localhost:3050/");
-  const emptyWallet = new Wallet(EMPTY_WALLET_PRIVATE_KEY!, provider);
+  const provider = new Provider("https://zksync2-testnet.zksync.dev");
   const wallet = new Wallet(WALLET!, provider);
 
-  // Obviously this step is not required, but it is here purely to demonstrate that indeed the wallet has no ether.
-  const ethBalance = await emptyWallet.getBalance();
-  if (!ethBalance.eq(0)) {
-    throw new Error("The wallet is not empty");
-  }
-
   const event = getEvent(hre, wallet);
-  const contractWallet = EVENT_CONTRACT_ADDRESS;
+  const randomWallet = Wallet.createRandom();
 
-  let tx = await event.populateTransaction.buy(
-    1
-  )
+  // const factory = await deployAAFactory(wallet);
+  // console.log('factory')
+  const account = await deployAccount(wallet, randomWallet, AA_FACTORY_ADDRESS_LIVE);
+  console.log('account', account.address)
 
-  tx = {
-    ...tx,
-    to: wallet.address,
-    value: ethers.utils.parseEther("2"),
-    data: "0x",
-    from: contractWallet,
-    chainId: (await provider.getNetwork()).chainId,
-    nonce: await provider.getTransactionCount(contractWallet!),
-    type: 113,
-    customData: {
-      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-    } as types.Eip712Meta};
+  await(await wallet.sendTransaction({
+    to: account.address,
+    value: ethers.utils.parseEther('0.005')
+  })).wait();
 
-  tx.gasPrice = await provider.getGasPrice();
-  if (tx.gasLimit == undefined) {
-    tx.gasLimit = await provider.estimateGas(tx);
-  }
+  let tx = await event.populateTransaction.buy(1, {
+    value: ethers.utils.parseEther('0')
+  });
 
-  const signedTxHash = EIP712Signer.getSignedDigest(tx);
-  const signature = ethers.utils.arrayify(
-    ethers.utils.joinSignature(wallet._signingKey().signDigest(signedTxHash))
-  );
+  console.log(tx);
 
-  tx.customData = {
-    ...tx.customData,
-    customSignature: signature,
-  };
+  const resp = await sendTx(provider, account, randomWallet, tx);
+  await resp.wait();
 
-  console.log("Request", tx)
-
-  const resp = await provider.sendTransaction(utils.serialize(tx));
-
-  resp.wait();
-
-  console.log("response:", resp)
+  // let ownerOf = await event.populateTransaction.balanceOf(account.address, {
+  //     value: ethers.utils.parseEther('0')
+  //   });
 
 
+  // const ownerOfResp = await sendTx(provider, account, randomWallet, ownerOf);
+  // const conf = await ownerOfResp.wait();
+  // console.log(conf);
 
+  // tx = {
+  //   ...tx,
+  //   from: account.address,
+  //   to: EVENT_CONTRACT_ADDRESS,
+  //   value: ethers.utils.parseEther("0"),
+  //   chainId: (await provider.getNetwork()).chainId,
+  //   nonce: await provider.getTransactionCount(account.address),
+  //   type: 113,
+  //   gasPrice: await provider.getGasPrice(),
+  //   gasLimit: ethers.BigNumber.from(1000000),
+  //   customData: {
+  //     gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+  //   } as types.Eip712Meta
+  // };
+
+  // const signedTxHash = EIP712Signer.getSignedDigest(tx);
+  // const signature = ethers.utils.arrayify(
+  //   ethers.utils.joinSignature(wallet._signingKey().signDigest(signedTxHash))
+  // );
+
+  // tx.customData = {
+  //   ...tx.customData,
+  //   customSignature: signature,
+  // };
+
+  // console.log("Request", tx)
+
+  // const resp = await provider.sendTransaction(utils.serialize(tx));
+
+  // resp.wait();
+
+  // console.log("response:", resp)
 
   // const gasPrice = await provider.getGasPrice();
 
-  // Loading the Paymaster Contract
-  const deployer = new Deployer(hre, wallet);
-  const paymasterArtifact = await deployer.loadArtifact("Paymaster");
+  // // Loading the Paymaster Contract
+  // const deployer = new Deployer(hre, wallet);
+  // const paymasterArtifact = await deployer.loadArtifact("Paymaster");
   
-  const PaymasterFactory = new ContractFactory(
-    paymasterArtifact.abi,
-    paymasterArtifact.bytecode,
-    deployer.zkWallet
-  );
-  const PaymasterContract = PaymasterFactory.attach(PAYMASTER_ADDRESS);
+  // const PaymasterFactory = new ContractFactory(
+  //   paymasterArtifact.abi,
+  //   paymasterArtifact.bytecode,
+  //   deployer.zkWallet
+  // );
+  // const PaymasterContract = PaymasterFactory.attach(PAYMASTER_ADDRESS);
 
   // // Estimate gas fee for the transaction
   // const gasLimit = await event.estimateGas.buy(
@@ -123,54 +133,22 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   // const fee = gasPrice.mul(gasLimit.toString());
   // console.log(`Estimated ETH FEE (gasPrice * gasLimit): ${fee}`);
 
-  // Encoding the "ApprovalBased" paymaster flow's input
-  const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
-    type: "ApprovalBased",
-    token: EVENT_CONTRACT_ADDRESS,
-    minimalAllowance: ethers.BigNumber.from(10000000000),
-    innerInput: new Uint8Array(),
-  });
-
-  // console.log(paymasterParams)
-
-  let buyTx = await event.populateTransaction.buy(1);
-
-  const gasLimit = await this.provider.estimateGas(buyTx);
-  const gasPrice = await this.provider.getGasPrice();
-
-    // prepare deploy transaction
-    buyTx = {
-      ...buyTx,
-      from: this.owner.address,
-      gasLimit: gasLimit,
-      gasPrice: gasPrice,
-      chainId: (await this.provider.getNetwork()).chainId,
-      nonce: await this.provider.getTransactionCount(this.owner.address),
-      type: 113,
-      customData: {
-        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-        paymasterParams: {
-          paymaster: PAYMASTER_ADDRESS,
-          paymasterInput: paymasterParams,
-        } as types.Eip712Meta,
-      },
-      value: ethers.BigNumber.from(0),
-    };
-
-    const sentTx = await wallet.sendTransaction(buyTx);
-      await sentTx;
-      console.log(sentTx);
-
+  // // Encoding the "ApprovalBased" paymaster flow's input
+  // const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
+  //   type: "ApprovalBased",
+  //   token: EVENT_CONTRACT_ADDRESS,
+  //   minimalAllowance: ethers.BigNumber.from(`100000000000000000000`),
+  //   innerInput: new Uint8Array(),
+  // });
 
   // await (
   //   await event
   //     .connect(emptyWallet)
-  //     .buy(1, {
-
+  //     .mint(1, {
   //       // specify gas values
   //       maxFeePerGas: gasPrice,
   //       maxPriorityFeePerGas: 0,
-  //       gasLimit: ethers.BigNumber.from(1000000),
+  //       gasLimit: gasLimit,
   //       // paymaster info
   //       customData: {
   //         paymasterParams: paymasterParams,

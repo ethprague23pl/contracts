@@ -71,10 +71,6 @@ contract Paymaster is IPaymaster, Ownable {
             require(existsInArray(token), "Token not supported");
 
             requiredETH = _transaction.gasLimit * _transaction.maxFeePerGas;
-            require(
-                providedAllowance >= requiredETH,
-                "Min paying allowance too low"
-            );
 
             // The bootloader never returns any data, so it can safely be ignored here.
             (bool success, ) = payable(BOOTLOADER_FORMAL_ADDRESS).call{

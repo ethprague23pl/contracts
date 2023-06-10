@@ -20,7 +20,7 @@ export async function deployAccount(
   factory_address: string
 ): Promise<Contract> {
   let deployer: Deployer = new Deployer(hre, wallet);
-  const factoryArtifact = await hre.artifacts.readArtifact("XAAccount");
+  const factoryArtifact = await hre.artifacts.readArtifact("AAFactory");
   const factory = new ethers.Contract(
     factory_address,
     factoryArtifact.abi,
@@ -28,7 +28,11 @@ export async function deployAccount(
   );
 
   const salt = ethers.constants.HashZero;
-  await (await factory.deployAccount(salt, owner.address)).wait();
+  const tx = await factory.deployAccount(
+    salt,
+    owner.address
+  );
+  await tx.wait();
 
   const AbiCoder = new ethers.utils.AbiCoder();
   const account_address = utils.create2Address(
@@ -38,7 +42,7 @@ export async function deployAccount(
     AbiCoder.encode(["address"], [owner.address])
   );
 
-  const accountArtifact = await deployer.loadArtifact("TestAccount");
+  const accountArtifact = await deployer.loadArtifact("XAAccount");
 
   return new ethers.Contract(account_address, accountArtifact.abi, wallet);
 }
