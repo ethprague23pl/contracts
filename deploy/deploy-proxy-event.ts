@@ -9,17 +9,13 @@ export default async function deployEvent(hre: HardhatRuntimeEnvironment) {
   // Private key of the account used to deploy
   const wallet = new Wallet(RICH_WALLET_PK!);
   const deployer = new Deployer(hre, wallet);
-  const eventArtifact = await deployer.loadArtifact('Event');
+  const eventArtifact = await deployer.loadArtifact('ProxyEvent');
 
-  const event = await deployer.deploy(
-    eventArtifact,
-    [100, 0, 0, '0x7720f64Dd997c6b540B8cf52704917fcBB359EE5'],
-    {
-      gasLimit: ethers.utils.hexlify(10000000),
-    },
-  );
+  const event = await deployer.deploy(eventArtifact, undefined, {
+    gasLimit: ethers.utils.hexlify(10000000),
+  });
 
-  console.log(`Event address: ${event.address}`);
+  console.log(`ProxyEvent address: ${event.address}`);
 
   return event;
 }

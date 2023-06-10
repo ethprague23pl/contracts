@@ -44,6 +44,8 @@ app.post('/event', async (req, res) => {
       params.ticketQuantity,
       // ethers.utils.parseUnits(params.ticketPrice, 'wei').toString(),
       params.ticketPrice,
+      0, // max sell price
+      '0x7720f64Dd997c6b540B8cf52704917fcBB359EE5', // proxy event
     );
 
     console.log('Deployed contract address - ', contractInstance.address);
@@ -158,11 +160,11 @@ app.post('/ticket', async (req, res) => {
     })
   ).wait();
 
-  console.log(
-    `Minted now by randomWallet address is: ${await event.numberMinted(
-      userWallet.address,
-    )}`,
-  );
+  // console.log(
+  //   `Minted now by randomWallet address is: ${await event.numberMinted(
+  //     userWallet.address,
+  //   )}`,
+  // );
 
   res.send({ OK: 'Success' });
 });

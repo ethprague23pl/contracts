@@ -1,8 +1,7 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { ContractFactory, Provider, Wallet, utils } from 'zksync-web3';
 import * as ethers from 'ethers';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { deployAAFactory, deployAccount } from './utils/deploy';
-import { sendTx } from './utils/sendTX';
 import { Deployer } from '@matterlabs/hardhat-zksync-deploy';
 
 require('dotenv').config();
@@ -34,7 +33,12 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploying the Event
   const eventArtifact = await deployer1.loadArtifact('Event');
-  const event = await deployer1.deploy(eventArtifact, [100, 0, 0]);
+  const event = await deployer1.deploy(eventArtifact, [
+    100,
+    0,
+    0,
+    '0x7720f64Dd997c6b540B8cf52704917fcBB359EE5',
+  ]);
   console.log(`Event address: ${event.address}`);
 
   // Deploying the ERC20 token

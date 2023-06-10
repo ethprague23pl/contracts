@@ -12,7 +12,8 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 contract Event is
     Ownable,
     ERC721A,
-    IEvent
+    IEvent,
+    ERC721AQueryable
 {
 
     using Counters for Counters.Counter;
@@ -23,7 +24,6 @@ contract Event is
 
     address public proxyEventContract;
 
-    event TicketBought(address contractAddress);
     string eventName = "TEST_EVENT";
     string key = "";
     uint256 ticketsCount = 0;
@@ -68,7 +68,7 @@ contract Event is
         for (uint8 i = 1; i <= amount; i++) {
             uint256 tokenId = tokenIdCounter.current();
 
-            _mint(msg.sender, tokenId);
+            _mint(msg.sender, i);
             ProxyEvent(proxyEventContract).emitEvent(address(this), tokenId);
             
             tokenIdCounter.increment();
@@ -103,8 +103,8 @@ contract Event is
         return 1;
     }
 
-    function _tokensOfOwner(address owner) external view returns(uint256[]) {
-        return (tokensOfOwner(owner));
-    }
+    // function tokensOfOwner(address owner) external view returns(uint256[]) {
+    //     return tokensOfOwner(owner);
+    // }
     
 }
