@@ -82,6 +82,7 @@
     "deploy-usdc-mock": "hardhat deploy-zksync --script deploy-usdc-mock.ts",
     "use-paymaster": "hardhat deploy-zksync --script use-paymaster.ts",
     "use-paymaster-aa": "hardhat deploy-zksync --script use-paymaster-aa.ts",
+    "use-market": "hardhat deploy-zksync --script use-market.ts",
     "test": "NODE_ENV=test hardhat test",
     "test-live": "hardhat test",
     "build": "nest build",
