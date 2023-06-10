@@ -43,7 +43,7 @@ describe("Events", () => {
   });
 
   it.skip('mint real only', async () => {
-    const provider = new Provider("https://zksync2-testnet.zksync.dev");
+    const provider = new Provider("https://testnet.era.zksync.dev	");
     const wallet = new Wallet("a79e0ad9ee6b22a7c71812e2d587195045449ac2232f7ebf1500c2bb4cf5bb57", provider);
     const EVENT_CONTRACT_ADDRESS = "0xfea4495f2541411B4460c69142cD63Cb0CB1A5Bc";
 

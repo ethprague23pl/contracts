@@ -13,7 +13,7 @@ contract Event is
     bool public isEventPaused = false;
 
     event TicketBought(address contractAddress);
-    string eventName = "";
+    string eventName = "TEST_EVENT";
     string key = "";
     uint256 ticketsCount = 0;
 
@@ -32,7 +32,7 @@ contract Event is
     }
 
     function getName() public view returns (string memory) {
-        return "EVENT NAME";
+        return eventName;
     }
 
     function getUserName(string memory _userName) public view returns (string memory) {
