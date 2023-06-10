@@ -7,11 +7,6 @@ import { CreateAccountRequest, CreateAccountReesponse as CreateAccountResponse, 
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
-
   @Post('account')
   async createAccount(@Body() account: CreateAccountRequest): Promise<CreateAccountResponse> {
     console.log(account)
