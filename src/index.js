@@ -9,10 +9,7 @@ dotenv.config();
 const AA_FACTORY_TESTNET_ADDRESS = '0xA2a98C0Fb41F971f4a04d82E013EE4BC51e5A245';
 
 const { abi, bytecode } = require('./abis/eventAbi');
-const {
-  abi: aafactoryAbi,
-  bytecode: aafactoryBytecode,
-} = require('./abis/aafactoryAbi');
+const { abi: aafactoryAbi } = require('./abis/aafactoryAbi');
 
 const app = express();
 const port = process.env.PORT || 8080;

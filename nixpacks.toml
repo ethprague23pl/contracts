@@ -1,2 +1,5 @@
 [phases.build]
 cmds = ["npm run install --force"]
+
+[start]
+cmd = "npm run start:backend"
