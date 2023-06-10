@@ -178,5 +178,31 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
     console.log(paymasterParams);
 
-  // console.log(`Message in contract now is: ${await event.ownerOf(emptyWallet.address)}`);
+
+
+    await (
+      await event
+        .connect(newWallet)
+        .buy(1, {
+          // specify gas values
+          maxFeePerGas: gasPrice,
+          maxPriorityFeePerGas: 0,
+          gasLimit: gasLimit,
+          // paymaster info
+          value: ethers.utils.parseEther("0"),
+          customData: {
+            paymasterParams: paymasterParams,
+            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+          },
+        })
+    ).wait();
+  
+    const newErc20Balance = await erc20.balanceOf(randomWallet.address);
+  
+    console.log(`ERC20 Balance of the user after tx: ${newErc20Balance}`);
+    console.log(
+      `Transaction fee paid in ERC20 was ${erc20Balance.sub(newErc20Balance)}`
+    );
+    console.log(`Minted now by randomWallet address is: ${await event.numberMinted(randomWallet.address)}`);
+
 }
