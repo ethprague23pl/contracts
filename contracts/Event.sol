@@ -12,6 +12,8 @@ contract Event is
     uint256 public ticketPrice = 0 ether;
     bool public isEventPaused = false;
 
+    event NewEvent(address contractAddress);
+    event TicketBought(address contractAddress);
     string eventName = "";
     string key = "";
     uint256 ticketsCount = 0;
@@ -23,10 +25,12 @@ contract Event is
     constructor(uint256 _ticketsCount, uint256 _price) ERC721A(eventName, key) {
         ticketsCount = _ticketsCount;
         ticketPrice = _price;
+        emit NewEvent(address(this));
     }
 
     function numberMinted(address owner) public view returns (uint256) {
         return _numberMinted(owner);
+        emit TicketBought(address(this))
     }
 
     function getName() public view returns (string memory) {
