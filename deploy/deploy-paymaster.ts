@@ -11,13 +11,13 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
   // // Deploying the paymaster
   const paymasterArtifact = await deployer.loadArtifact("Paymaster");
-  const paymaster = await deployer.deploy(paymasterArtifact, ["0x6A6c2b0EaBBe0701D90b915482E150D032d76A1B"]);
+  const paymaster = await deployer.deploy(paymasterArtifact, ["0xf7540AfbaF8524d64Be38BAb83B2fDB0a8a1A704"]);
   console.log(`Paymaster address: ${paymaster.address}`);
 
   await (
     await deployer.zkWallet.sendTransaction({
       to: paymaster.address,
-      value: ethers.utils.parseEther("0.0008"),
+      value: ethers.utils.parseEther("0.005"),
     })
   ).wait();
 

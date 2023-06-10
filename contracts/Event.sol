@@ -55,8 +55,8 @@ contract Event is
         // require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
         // require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
 
-        // _safeMint(msg.sender, amount);
-        // ticketsCount += amount;
+        _safeMint(msg.sender, amount);
+        ticketsCount -= amount;
     }
 
     function _baseURI() internal view virtual override(ERC721A) returns (string memory) {

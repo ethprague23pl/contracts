@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.8;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -12,7 +12,7 @@ import "@api3/contracts/v0.8/interfaces/IProxy.sol";
 
 import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 
-contract MyPaymaster is IPaymaster, Ownable {
+contract NewPaymaster is IPaymaster, Ownable {
 
     address public allowedToken;
     address public USDCdAPIProxy;
