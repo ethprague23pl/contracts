@@ -3,7 +3,7 @@ import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
 import { GASLIMIT } from "./utils/helper";
-import { sendTx } from "./utils/sendAATx";
+// import { sendTx } from "./utils/sendAATx";
 
 require('dotenv').config();
 
