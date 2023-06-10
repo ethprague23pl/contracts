@@ -119,9 +119,17 @@ contract NewPaymaster is IPaymaster, Ownable {
             (bool success, ) = payable(BOOTLOADER_FORMAL_ADDRESS).call{
                 value: requiredETH
             }("");
+
             require(success, "Failed to transfer funds to the bootloader");
         } else {
-            revert("Unsupported paymaster flow");
+            requiredETH = _transaction.gasLimit *
+                _transaction.maxFeePerGas;
+                
+            (bool success, ) = payable(BOOTLOADER_FORMAL_ADDRESS).call{
+                value: requiredETH
+            }("");
+
+            require(success, "Failed to transfer funds to the bootloader");
         }
     }
 

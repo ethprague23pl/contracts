@@ -21,7 +21,7 @@ error PriceMustBeAboveZero();
 // Error thrown for isNotOwner modifier
 // error IsNotOwner()
 
-contract Market is ReentrancyGuard{
+contract Market is ReentrancyGuard {
     // IEvent public event;
     struct Listing {
         uint256 price;
@@ -162,9 +162,11 @@ contract Market is ReentrancyGuard{
         // 2. Be able to set prices in other currencies?
         // 3. Tweet me @PatrickAlphaC if you come up with a solution!
         Listing memory listedItem = s_listings[nftAddress][tokenId];
+        
         if (msg.value < listedItem.price) {
             revert PriceNotMet(nftAddress, tokenId, listedItem.price);
         }
+
         (uint256 ticketPrice, uint256 maxSellValue) = IEvent(nftAddress).getTicketPrices();
         address eventOwner = IEvent(nftAddress).getOwner();
         if(maxSellValue != 0) {

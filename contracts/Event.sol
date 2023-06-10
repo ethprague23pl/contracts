@@ -4,32 +4,46 @@ pragma solidity ^0.8.16;
 import "erc721a/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IEvent.sol";
+import "./ProxyEvent.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract Event is
     Ownable,
     ERC721A,
-    IEvent
+    IEvent,
+    ProxyEvent
 {
+
+    using Counters for Counters.Counter;
 
     uint256 public ticketPrice = 0 ether;
     uint256 public maxSellPrice = 0 ether;
     bool public isEventPaused = false;
+
+    string proxyEventContract = "";
 
     event TicketBought(address contractAddress);
     string eventName = "TEST_EVENT";
     string key = "";
     uint256 ticketsCount = 0;
 
+    uint256 currentId = 0;
+
     mapping(address => bool) proofsOfAttendance;
+
+    Counters.Counter public tokenIdCounter;
 
     // TODO:
     // Proof of attendance
     // Oznaczamy, ze dany bilet zostal uzyty
 
-    constructor(uint256 _ticketsCount, uint256 _price, uint256 _maxSellPrice) ERC721A(eventName, key) {
+    constructor(uint256 _ticketsCount, uint256 _price, uint256 _maxSellPrice, address _proxyEventContract) ERC721A(eventName, key) {
         ticketsCount = _ticketsCount;
         ticketPrice = _price;
         maxSellPrice = _maxSellPrice;
+        proxyEventContract = _proxyEventContract;
+
+        tokenIdCounter.increment();
     }
 
     function numberMinted(address owner) public view returns (uint256) {
@@ -55,7 +69,16 @@ contract Event is
 
         _mint(msg.sender, amount);
         ticketsCount -= amount;
-        emit TicketBought(address(this));
+        currentId += amount;
+        ProxyEvent(proxyEventContract).emitEvent(address(this), 0);
+
+        for (uint8 i = 1; i <= amount; i++) {
+            uint256 tokenId = tokenIdCounter.current();
+
+            _mint(to, tokenId);
+            _setTokenURI(tokenId, baseTokenURI);
+            tokenIdCounter.increment();
+        }
     }
 
     function _baseURI() internal view virtual override(ERC721A) returns (string memory) {

@@ -46,7 +46,7 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploying the Event
   const eventArtifact = await deployer1.loadArtifact('Event');
-  const event = await deployer1.deploy(eventArtifact, [100, 0]);
+  const event = await deployer1.deploy(eventArtifact, [100, 0, 0]);
   console.log(`Event address: ${event.address}`);
 
   const factory = await deployAAFactory(wallet);

@@ -9,12 +9,14 @@ dotenv.config();
 
 const AA_FACTORY_TESTNET_ADDRESS = '0xA2a98C0Fb41F971f4a04d82E013EE4BC51e5A245';
 
-const PAYMASTER_TESTNET_ADDRESS = '0x461771F8B3eC435decc890c9185eB26ee4Aa2F05';
+const PAYMASTER_TESTNET_ADDRESS = '0x7e73AFDe3e996437b0E7D20B8394FcA1d76cF68a';
 const ERC20_MOCK_TESTNET_ADDRESS = '0xcd6DBE1f8d04F35e84aAbAeB5d150F2bAEe5fFbE';
 const EVENT_TESTNET_ADDRESS = '0x00324B1eb4D2fd83cc730cA82f54F9DC7dCd8611';
 
 const { abi, bytecode } = require('./abis/eventAbi');
+const { abi: aaWalletAbi } = require('./abis/aaWallet');
 const { abi: aafactoryAbi } = require('./abis/aafactoryAbi');
+const { abi: erc20Abi } = require('./abis/erc20');
 const {
   abi: paymasterAbi,
   bytecode: paymasterBytecode,
@@ -35,60 +37,77 @@ app.post('/event', async (req, res) => {
 
   console.log(params);
 
-  const wallet = new Wallet(process.env.PRIVATE_KEY, provider);
-  const ContractInstance = new ContractFactory(abi, bytecode, wallet);
-  const contractInstance = await ContractInstance.deploy(
-    params.ticketQuantity,
-    // ethers.utils.parseUnits(params.ticketPrice, 'wei').toString(),
-    params.ticketPrice,
-  );
+  try {
+    const wallet = new Wallet(process.env.PRIVATE_KEY, provider);
+    const ContractInstance = new ContractFactory(abi, bytecode, wallet);
+    const contractInstance = await ContractInstance.deploy(
+      params.ticketQuantity,
+      // ethers.utils.parseUnits(params.ticketPrice, 'wei').toString(),
+      params.ticketPrice,
+    );
 
-  console.log('Deployed contract address - ', contractInstance.address);
+    console.log('Deployed contract address - ', contractInstance.address);
 
-  res.send({ event_address: contractInstance.address });
+    res.send({ event_address: contractInstance.address });
+  } catch (err) {
+    res.send({ event_address: 'ERROR' });
+  }
 });
 
 app.get('/account', async (req, res) => {
-  const provider = new Provider('https://testnet.era.zksync.dev');
+  // const factory = new ethers.Contract(
+  //   AA_FACTORY_TESTNET_ADDRESS,
+  //   aafactoryAbi,
+  //   wallet,
+  // );
 
+  // const salt = ethers.constants.HashZero;
+
+  // const deployAccountTx = await factory.deployAccount(
+  //   salt,
+  //   randomWallet.address,
+  // );
+
+  // await deployAccountTx.wait();
+
+  // const AbiCoder = new ethers.utils.AbiCoder();
+  // const account_address = utils.create2Address(
+  //   factory.address,
+  //   await factory.aaBytecodeHash(),
+  //   salt,
+  //   AbiCoder.encode(['address'], [randomWallet.address]),
+  // );
+
+  // console.log('Deployed address ', account_address);
+
+  const provider = new Provider('https://testnet.era.zksync.dev');
   const wallet = new Wallet(process.env.PRIVATE_KEY, provider);
-  const factory = new ethers.Contract(
-    AA_FACTORY_TESTNET_ADDRESS,
-    aafactoryAbi,
+
+  const randomWallet = Wallet.createRandom().connect(provider);
+
+  const erc20 = new ethers.Contract(
+    ERC20_MOCK_TESTNET_ADDRESS,
+    erc20Abi,
     wallet,
   );
 
-  const salt = ethers.constants.HashZero;
+  await (
+    await erc20.mint(randomWallet.address, '500000000000000000000000')
+  ).wait();
 
-  const randomWallet = Wallet.createRandom();
-
-  const contractInstance = await factory.deployAccount(
-    salt,
-    randomWallet.address,
-  );
-
-  await contractInstance.wait();
-
-  const AbiCoder = new ethers.utils.AbiCoder();
-  const account_address = utils.create2Address(
-    factory.address,
-    await factory.aaBytecodeHash(),
-    salt,
-    AbiCoder.encode(['address'], [randomWallet.address]),
-  );
-
-  console.log('Deployed address ', account_address);
+  const erc20Balance = await erc20.balanceOf(randomWallet.address);
+  console.log(`ERC20 balance of the user: ${erc20Balance}`);
 
   res.send({
-    wallet_address: account_address,
-    private_key: randomWallet.privateKey,
+    wallet_address: randomWallet.address,
+    wallet_private_key: randomWallet.privateKey,
   });
 });
 
 app.post('/ticket', async (req, res) => {
   const provider = new Provider('https://testnet.era.zksync.dev');
-  const wallet = new Wallet(process.env.PRIVATE_KEY, provider);
   const params = req.body;
+  console.log(params);
 
   const privateKey = params.privateKey
     ? params.privateKey
@@ -96,33 +115,22 @@ app.post('/ticket', async (req, res) => {
   const ticketQuantity = params.ticketQuantity ? params.ticketQuantity : 0;
   const eventContractAddress = params.eventContractAddress
     ? params.eventContractAddress
-    : '0x'; // TODO: XD
+    : EVENT_TESTNET_ADDRESS;
 
-  const PaymasterFactory = new ContractFactory(
-    paymasterAbi,
-    paymasterBytecode,
-    wallet,
-  );
-  const PaymasterContract = PaymasterFactory.attach(PAYMASTER_TESTNET_ADDRESS);
+  const userWallet = new Wallet(privateKey, provider);
 
-  // new wallet, so user wallet
-  const newWallet = new Wallet(privateKey, provider);
-  const event = new ethers.Contract(EVENT_TESTNET_ADDRESS, abi, newWallet);
+  const event = new ethers.Contract(eventContractAddress, abi, userWallet);
 
-  console.log(event);
+  const paymasterParams = utils.getPaymasterParams(PAYMASTER_TESTNET_ADDRESS, {
+    type: 'General',
+    innerInput: new Uint8Array(),
+  });
 
   const gasLimit = await event.estimateGas.buy(ticketQuantity, {
     value: ethers.utils.parseEther('0'),
     customData: {
       gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-      paymasterParams: utils.getPaymasterParams(PAYMASTER_TESTNET_ADDRESS, {
-        type: 'ApprovalBased',
-        token: ERC20_MOCK_TESTNET_ADDRESS,
-        // Set a large allowance just for estimation
-        minimalAllowance: ethers.BigNumber.from(`100000000000000000000`),
-        // Empty bytes as testnet paymaster does not use innerInput
-        innerInput: new Uint8Array(),
-      }),
+      paymasterParams: paymasterParams,
     },
   });
 
@@ -133,35 +141,10 @@ app.post('/ticket', async (req, res) => {
   const fee = gasPrice.mul(gasLimit.toString());
   console.log(`Estimated ETH FEE (gasPrice * gasLimit): ${fee}`);
 
-  // Calling the dAPI to get the ETH price:
-  const ETHUSD = await PaymasterContract.readDapi(
-    '0x28ce555ee7a3daCdC305951974FcbA59F5BdF09b',
-  );
-  const USDCUSD = await PaymasterContract.readDapi(
-    '0x946E3232Cc18E812895A8e83CaE3d0caA241C2AB',
-  );
-
-  console.log(`ETH/USD dAPI Value: ${ETHUSD}`);
-  console.log(`USDC/USD dAPI Value: ${USDCUSD}`);
-
-  // Calculating the USD fee:
-  const usdFee = fee.mul(ETHUSD).div(USDCUSD);
-  console.log(`Estimated USD FEE: ${usdFee}`);
-
-  // Encoding the "ApprovalBased" paymaster flow's input
-  const paymasterParams = utils.getPaymasterParams(PAYMASTER_TESTNET_ADDRESS, {
-    type: 'ApprovalBased',
-    token: ERC20_MOCK_TESTNET_ADDRESS,
-    // set minimalAllowance to the estimated fee in erc20
-    minimalAllowance: ethers.BigNumber.from(usdFee),
-    // empty bytes as testnet paymaster does not use innerInput
-    innerInput: new Uint8Array(),
-  });
-
   console.log(paymasterParams);
 
   await (
-    await event.connect(newWallet).buy(ticketQuantity, {
+    await event.connect(userWallet).buy(ticketQuantity, {
       // specify gas values
       maxFeePerGas: gasPrice,
       maxPriorityFeePerGas: 0,
@@ -177,11 +160,11 @@ app.post('/ticket', async (req, res) => {
 
   console.log(
     `Minted now by randomWallet address is: ${await event.numberMinted(
-      newWallet.address,
+      userWallet.address,
     )}`,
   );
 
-  res.send('DUPA');
+  res.send({ OK: 'Success' });
 });
 
 app.listen(port, () => {

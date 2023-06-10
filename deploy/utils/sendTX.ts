@@ -5,14 +5,14 @@ import {
   utils,
   EIP712Signer,
   types,
-} from "zksync-web3";
-import { ethers } from "ethers";
+} from 'zksync-web3';
+import { ethers } from 'ethers';
 
 export async function sendTx(
   provider: Provider,
   account: Contract,
   user: Wallet,
-  tx: any
+  tx: any,
 ) {
   tx = {
     ...tx,
@@ -28,8 +28,8 @@ export async function sendTx(
 
   console.log(tx);
 
-  if(tx.value === undefined) {
-    tx.value = ethers.utils.parseEther('0')
+  if (tx.value === undefined) {
+    tx.value = ethers.utils.parseEther('0');
   }
 
   if (tx.gasLimit == undefined) {
@@ -39,7 +39,7 @@ export async function sendTx(
 
   const signedTxHash = EIP712Signer.getSignedDigest(tx);
   const signature = ethers.utils.arrayify(
-    ethers.utils.joinSignature(user._signingKey().signDigest(signedTxHash))
+    ethers.utils.joinSignature(user._signingKey().signDigest(signedTxHash)),
   );
 
   tx.customData = {
