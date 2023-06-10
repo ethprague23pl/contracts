@@ -3,13 +3,16 @@ pragma solidity ^0.8.16;
 
 import "erc721a/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "../interfaces/IEvent.sol";
 
 contract Event is
     Ownable,
-    ERC721A
+    ERC721A,
+    IEvent
 {
 
     uint256 public ticketPrice = 0 ether;
+    uint256 public maxSellPrice = 0 ether;
     bool public isEventPaused = false;
 
     event TicketBought(address contractAddress);
@@ -23,9 +26,10 @@ contract Event is
     // Proof of attendance
     // Oznaczamy, ze dany bilet zostal uzyty
 
-    constructor(uint256 _ticketsCount, uint256 _price) ERC721A(eventName, key) {
+    constructor(uint256 _ticketsCount, uint256 _price, uint256 _maxSellPrice) ERC721A(eventName, key) {
         ticketsCount = _ticketsCount;
         ticketPrice = _price;
+        maxSellPrice = _maxSellPrice;
     }
 
     function numberMinted(address owner) public view returns (uint256) {
@@ -35,6 +39,10 @@ contract Event is
 
     function getName() public view returns (string memory) {
         return eventName;
+    }
+
+    function getOwner() external view returns (address) {
+        return owner();
     }
 
     function buy(uint8 amount) public payable {
@@ -54,12 +62,20 @@ contract Event is
         return "";
     }
 
+    function getTicketPrices()  external view returns (uint256, uint256) {
+        return (ticketPrice, maxSellPrice);
+    }
+
     function setIsEventPaused(bool _isMintPaused) public onlyOwner {
         isEventPaused = _isMintPaused;
     }
 
     function setTicketPrice(uint256 _ticketPrice) public onlyOwner {
         ticketPrice = _ticketPrice;
+    }
+
+    function setMaxSellPrice(uint256 _maxSellPrice) public onlyOwner {
+        maxSellPrice = _maxSellPrice;
     }
 
     function withdraw() external onlyOwner {

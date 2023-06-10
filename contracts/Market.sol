@@ -3,6 +3,8 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../interfaces/IEvent.sol";
+
 
 // Check out https://github.com/Fantom-foundation/Artion-Contracts/blob/5c90d2bc0401af6fb5abf35b860b762b31dfee02/contracts/FantomMarketplace.sol
 // For a full decentralized nft marketplace
@@ -19,7 +21,8 @@ error PriceMustBeAboveZero();
 // Error thrown for isNotOwner modifier
 // error IsNotOwner()
 
-contract Market is ReentrancyGuard {
+contract Market is ReentrancyGuard{
+    // IEvent public event;
     struct Listing {
         uint256 price;
         address seller;
@@ -162,7 +165,17 @@ contract Market is ReentrancyGuard {
         if (msg.value < listedItem.price) {
             revert PriceNotMet(nftAddress, tokenId, listedItem.price);
         }
-        s_proceeds[listedItem.seller] += msg.value;
+        (uint256 ticketPrice, uint256 maxSellValue) = IEvent(nftAddress).getTicketPrices();
+        address eventOwner = IEvent(nftAddress).getOwner();
+        if(maxSellValue != 0) {
+            if(maxSellValue < msg.value){
+            uint256 royality = msg.value - maxSellValue;    
+            payable(eventOwner).send(royality);
+            s_proceeds[listedItem.seller] += msg.value - royality;
+            }
+        } else {
+            s_proceeds[listedItem.seller] += msg.value;
+        }
         // Could just send the money...
         // https://fravoll.github.io/solidity-patterns/pull_over_push.html
         delete (s_listings[nftAddress][tokenId]);
