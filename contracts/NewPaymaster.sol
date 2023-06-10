@@ -13,7 +13,6 @@ import "@api3/contracts/v0.8/interfaces/IProxy.sol";
 import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 
 contract NewPaymaster is IPaymaster, Ownable {
-
     address public allowedToken;
     address public USDCdAPIProxy;
     address public ETHdAPIProxy;
