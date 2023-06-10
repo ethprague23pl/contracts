@@ -15,10 +15,10 @@ require("dotenv").config();
 
 const WALLET = process.env.NODE_ENV === 'test' ? '0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110' : process.env.PRIVATE_KEY;
 
-function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet, eventAddress: string) {
-  const artifact = hre.artifacts.readArtifactSync("Event");
-  return new ethers.Contract(eventAddress, artifact.abi, wallet);
-}
+// function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
+//   const artifact = hre.artifacts.readArtifactSync("Event");
+//   return new ethers.Contract(EVENT_CONTRACT_ADDRESS, artifact.abi, wallet);
+// }
 
 // function getPaymaster(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
 //   const artifact = hre.artifacts.readArtifactSync("Paymaster");
@@ -31,7 +31,6 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const wallet = new Wallet(WALLET!, provider);
   const deployer1 = new Deployer(hre, wallet);
   const randomWallet = Wallet.createRandom();
-  const newWallet = new Wallet(randomWallet.privateKey, provider);
   // Loading the Paymaster Contract
   const deployer = new Deployer(hre, randomWallet);
 
@@ -85,7 +84,7 @@ export default async function (hre: HardhatRuntimeEnvironment) {
    await (
     await deployer1.zkWallet.sendTransaction({
       to: paymaster.address,
-      value: ethers.utils.parseEther("0.005"),
+      value: ethers.utils.parseEther("0.0005"),
     })
   ).wait();
 
@@ -99,9 +98,10 @@ export default async function (hre: HardhatRuntimeEnvironment) {
 
     // Supplying the ERC20 tokens to the empty wallet:
     // We will give the empty wallet 5k mUSDC:
-    await (await erc20.mint(randomWallet.address, "500000000000000000000000")).wait();
+    await (await erc20.mint(randomWallet.address, "5000000000000000000000")).wait();
+    await (await erc20.mint(paymaster.address, "5000000000000000000000")).wait();
   
-    console.log("Minted 50k mUSDC for the empty wallet");
+    console.log("Minted 5k mUSDC for the empty wallet");
 
     
     const erc20Balance = await erc20.balanceOf(randomWallet.address);
@@ -114,13 +114,10 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     );
     const PaymasterContract = PaymasterFactory.attach(paymaster.address);
 
-    const newEvent = await getEvent(hre, newWallet, event.address)
-
     // Estimate gas fee for the transaction
-  const gasLimit = await newEvent.estimateGas.buy(
+  const gasLimit = await event.estimateGas.buy(
     1,
     {
-      value: ethers.utils.parseEther("0"),
       customData: {
         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
         paymasterParams: utils.getPaymasterParams(paymaster.address, {
