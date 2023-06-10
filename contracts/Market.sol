@@ -6,36 +6,37 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Market is ReentrancyGuard {
 
-    function listTicket 
-    (
-        address eventAddress,
-        uint256 tokenId,
-        uint256 price
-    )
-    external
-    notListed(eventAddress, tokenId, msg.sender)
-    isOwner(eventAddress, tokenId, msg.sender) {
+    // function listTicket 
+    // (
+    //     address eventAddress,
+    //     uint256 tokenId,
+    //     uint256 price
+    // )
+    // external
+    // // notListed(eventAddress, tokenId, msg.sender)
+    // // isOwner(eventAddress, tokenId, msg.sender) 
+    // {
         
-    }
+    // }
 
-    function cancelListing(
-        address eventAddress,
-        uint256 tokenId
-    ) {
+    // function cancelListing(
+    //     address eventAddress,
+    //     uint256 tokenId
+    // ) {
 
-    }
+    // }
 
-    function buyTicker(
-        address eventAddress,
-        uint256 tokenId,
-    ) {
+    // function buyTicker(
+    //     address eventAddress,
+    //     uint256 tokenId
+    // ) {
 
-    }
+    // }
 
-    function getListing(
-        address eventAddress,
-        uint256 tokenId,
-    ) {
+    // function getListing(
+    //     address eventAddress,
+    //     uint256 tokenId
+    // ) {
 
-    }
+    // }
 }
