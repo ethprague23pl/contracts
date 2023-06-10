@@ -21,7 +21,7 @@ contract Event is
     uint256 public maxSellPrice = 0 ether;
     bool public isEventPaused = false;
 
-    string proxyEventContract = "";
+    address public proxyEventContract;
 
     event TicketBought(address contractAddress);
     string eventName = "TEST_EVENT";
@@ -59,20 +59,18 @@ contract Event is
         require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
         require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
         require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
-        require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
-        require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
-        require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
 
-        _mint(msg.sender, amount);
-        ticketsCount -= amount;
-        currentId += amount;
-        ProxyEvent(proxyEventContract).emitEvent(address(this), 0);
+        // _mint(msg.sender, amount);
+        // ticketsCount -= amount;
+        // currentId += amount;
+        
 
         for (uint8 i = 1; i <= amount; i++) {
             uint256 tokenId = tokenIdCounter.current();
 
-            _mint(to, tokenId);
-            _setTokenURI(tokenId, baseTokenURI);
+            _mint(msg.sender, tokenId);
+            ProxyEvent(proxyEventContract).emitEvent(address(this), tokenId);
+            
             tokenIdCounter.increment();
         }
     }

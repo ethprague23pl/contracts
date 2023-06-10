@@ -5,7 +5,7 @@ import "../interfaces/IEvent.sol";
 
 contract ProxyEvent {
 
-  event TicketBought(address indexed _contractEvent, bytes32 indexed _ticketId);
+  event TicketBought(address indexed _contractEvent, uint256 indexed _ticketId);
 
   mapping(address => bool) listenedEvents;
 
@@ -13,7 +13,7 @@ contract ProxyEvent {
     listenedEvents[_event] = true;
   }
   
-  function emitEvent(address _event, uint256 _tokenId) {
+  function emitEvent(address _event, uint256 _tokenId) public {
     emit TicketBought(_event, _tokenId);
   }
 }
