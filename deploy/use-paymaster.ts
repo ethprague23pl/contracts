@@ -26,7 +26,7 @@ function getEvent(hre: HardhatRuntimeEnvironment, wallet: Wallet, eventAddress: 
 // }
 
 export default async function (hre: HardhatRuntimeEnvironment) {
-  const provider = new Provider("https://zksync2-testnet.zksync.dev");
+  const provider = new Provider("https://testnet.era.zksync.dev	");
   // const provider = new Provider("http://localhost:3050/");
   const wallet = new Wallet(WALLET!, provider);
   const deployer1 = new Deployer(hre, wallet);

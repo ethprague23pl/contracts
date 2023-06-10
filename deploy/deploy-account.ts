@@ -134,7 +134,7 @@ export async function deployEvent (hre: HardhatRuntimeEnvironment) {
 }
 
 export default async function (hre: HardhatRuntimeEnvironment) {
-  const provider = new Provider("https://zksync2-testnet.zksync.dev");
+  const provider = new Provider("https://testnet.era.zksync.dev	");
   const wallet = new Wallet(RICH_WALLET_PK!).connect(provider);
   const factoryArtifact = await hre.artifacts.readArtifact("AAFactory");
   const aaArtifact = await hre.artifacts.readArtifact("XAAccount");

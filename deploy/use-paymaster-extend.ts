@@ -26,7 +26,7 @@ const WALLET = process.env.NODE_ENV === 'test' ? '0x7726827caac94a7f9e1b160f7ea8
 // }
 
 export default async function (hre: HardhatRuntimeEnvironment) {
-  const provider = new Provider("https://zksync2-testnet.zksync.dev");
+  const provider = new Provider("https://testnet.era.zksync.dev	");
   // const provider = new Provider("http://localhost:3050/");
   const wallet = new Wallet(WALLET!, provider);
   const deployer1 = new Deployer(hre, wallet);
