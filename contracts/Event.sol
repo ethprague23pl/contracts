@@ -12,7 +12,6 @@ contract Event is
     uint256 public ticketPrice = 0 ether;
     bool public isEventPaused = false;
 
-    event NewEvent(address contractAddress);
     event TicketBought(address contractAddress);
     string eventName = "";
     string key = "";
@@ -25,7 +24,6 @@ contract Event is
     constructor(uint256 _ticketsCount, uint256 _price) ERC721A(eventName, key) {
         ticketsCount = _ticketsCount;
         ticketPrice = _price;
-        emit NewEvent(address(this));
     }
 
     function numberMinted(address owner) public view returns (uint256) {
@@ -45,9 +43,13 @@ contract Event is
         require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
         require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
         require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
+        require(!isEventPaused, "EVENT_TICKETS_SALE_IS_CURRENTLY_PAUSED");
+        require((msg.value * amount) == (ticketPrice * amount), "ETH_AMOUNT_INVALID");
+        require(amount <= ticketsCount, "TICKETS_AMOUNT_EXCEEDED");
 
         _mint(msg.sender, amount);
         ticketsCount -= amount;
+        emit TicketBought(address(this));
     }
 
     function _baseURI() internal view virtual override(ERC721A) returns (string memory) {
