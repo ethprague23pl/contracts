@@ -1,5 +1,17 @@
 # Hello :)
 
+## Contracts
+
+We developed various contracts:
+
+- AAFactory - asset account factory,
+- Event - based on ERC721A, event smart contract. Each event is deployed on-chain,
+- ProxyEvent - proxy contract "mother" for all events, so any event emitted in Event contract, going through this proxy smart contract. That allows us to integrate the graph ecosystem, and notify events organizers about tickets buying, supply reaching out 10%/20%/50%/100% etc
+- Market - marketplace for event tickets, allows us to list, buy, and sell tokens, keeping the maximum price
+- NewPaymaster - Paymaster implementation, based on api3. We've implemented two ways of gasless transactions - paying in any erc20 token, or paymaster paying with native eth token. So either wallet pays in erc20, or paymaster with native token
+- USDCMOCK - erc20 implementation for mock usdc,
+- XAAcount - abstraction account implementation
+
 ## Scripts
 
 ```
