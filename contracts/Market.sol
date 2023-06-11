@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+// import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../interfaces/IEvent.sol";
+import "erc721a/contracts/interfaces/IERC721A.sol";
 
 
 // Check out https://github.com/Fantom-foundation/Artion-Contracts/blob/5c90d2bc0401af6fb5abf35b860b762b31dfee02/contracts/FantomMarketplace.sol
@@ -22,7 +23,6 @@ error PriceMustBeAboveZero();
 // error IsNotOwner()
 
 contract Market is ReentrancyGuard {
-    // IEvent public event;
     struct Listing {
         uint256 price;
         address seller;
@@ -75,7 +75,7 @@ contract Market is ReentrancyGuard {
         uint256 tokenId,
         address spender
     ) {
-        IERC721 nft = IERC721(nftAddress);
+        IERC721A nft = IERC721A(nftAddress);
         address owner = nft.ownerOf(tokenId);
         if (spender != owner) {
             revert NotOwner();
@@ -120,7 +120,7 @@ contract Market is ReentrancyGuard {
         if (price <= 0) {
             revert PriceMustBeAboveZero();
         }
-        IERC721 nft = IERC721(nftAddress);
+        IERC721A nft = IERC721A(nftAddress);
         if (nft.getApproved(tokenId) != address(this)) {
             revert NotApprovedForMarketplace();
         }
@@ -181,7 +181,7 @@ contract Market is ReentrancyGuard {
         // Could just send the money...
         // https://fravoll.github.io/solidity-patterns/pull_over_push.html
         delete (s_listings[nftAddress][tokenId]);
-        IERC721(nftAddress).safeTransferFrom(listedItem.seller, msg.sender, tokenId);
+        IERC721A(nftAddress).safeTransferFrom(listedItem.seller, msg.sender, tokenId);
         emit ItemBought(msg.sender, nftAddress, tokenId, listedItem.price);
     }
 
