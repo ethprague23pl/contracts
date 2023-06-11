@@ -19,9 +19,6 @@ error NotOwner();
 error NotApprovedForMarketplace();
 error PriceMustBeAboveZero();
 
-// Error thrown for isNotOwner modifier
-// error IsNotOwner()
-
 contract Market is ReentrancyGuard {
     struct Listing {
         uint256 price;
@@ -83,31 +80,6 @@ contract Market is ReentrancyGuard {
         _;
     }
 
-    // IsNotOwner Modifier - Nft Owner can't buy his/her NFT
-    // Modifies buyItem function
-    // Owner should only list, cancel listing or update listing
-    /* modifier isNotOwner(
-        address nftAddress,
-        uint256 tokenId,
-        address spender
-    ) {
-        IERC721 nft = IERC721(nftAddress);
-        address owner = nft.ownerOf(tokenId);
-        if (spender == owner) {
-            revert IsNotOwner();
-        }
-        _;
-    } */
-
-    /////////////////////
-    // Main Functions //
-    /////////////////////
-    /*
-     * @notice Method for listing NFT
-     * @param nftAddress Address of NFT contract
-     * @param tokenId Token ID of NFT
-     * @param price sale price for each item
-     */
     function listItem(
         address nftAddress,
         uint256 tokenId,
@@ -127,12 +99,7 @@ contract Market is ReentrancyGuard {
         s_listings[nftAddress][tokenId] = Listing(price, msg.sender);
         emit ItemListed(msg.sender, nftAddress, tokenId, price);
     }
-
-    /*
-     * @notice Method for cancelling listing
-     * @param nftAddress Address of NFT contract
-     * @param tokenId Token ID of NFT
-     */
+    
     function cancelListing(address nftAddress, uint256 tokenId)
         external
         isOwner(nftAddress, tokenId, msg.sender)
@@ -142,25 +109,12 @@ contract Market is ReentrancyGuard {
         emit ItemCanceled(msg.sender, nftAddress, tokenId);
     }
 
-    /*
-     * @notice Method for buying listing
-     * @notice The owner of an NFT could unapprove the marketplace,
-     * which would cause this function to fail
-     * Ideally you'd also have a `createOffer` functionality.
-     * @param nftAddress Address of NFT contract
-     * @param tokenId Token ID of NFT
-     */
     function buyItem(address nftAddress, uint256 tokenId)
         external
         payable
         isListed(nftAddress, tokenId)
-        // isNotOwner(nftAddress, tokenId, msg.sender)
         nonReentrant
     {
-        // Challenge - How would you refactor this contract to take:
-        // 1. Abitrary tokens as payment? (HINT - Chainlink Price Feeds!)
-        // 2. Be able to set prices in other currencies?
-        // 3. Tweet me @PatrickAlphaC if you come up with a solution!
         Listing memory listedItem = s_listings[nftAddress][tokenId];
         
         if (msg.value < listedItem.price) {
@@ -169,28 +123,23 @@ contract Market is ReentrancyGuard {
 
         (uint256 ticketPrice, uint256 maxSellValue) = IEvent(nftAddress).getTicketPrices();
         address eventOwner = IEvent(nftAddress).getOwner();
+        //Valid max sell value
         if(maxSellValue != 0) {
+            uint256 royality = 0;
             if(maxSellValue < msg.value){
-            uint256 royality = msg.value - maxSellValue;    
+            royality = msg.value - maxSellValue;
             payable(eventOwner).send(royality);
-            s_proceeds[listedItem.seller] += msg.value - royality;
             }
+        s_proceeds[listedItem.seller] += msg.value - royality;
         } else {
             s_proceeds[listedItem.seller] += msg.value;
         }
-        // Could just send the money...
-        // https://fravoll.github.io/solidity-patterns/pull_over_push.html
+        
         delete (s_listings[nftAddress][tokenId]);
         IERC721A(nftAddress).safeTransferFrom(listedItem.seller, msg.sender, tokenId);
         emit ItemBought(msg.sender, nftAddress, tokenId, listedItem.price);
     }
 
-    /*
-     * @notice Method for updating listing
-     * @param nftAddress Address of NFT contract
-     * @param tokenId Token ID of NFT
-     * @param newPrice Price in Wei of the item
-     */
     function updateListing(
         address nftAddress,
         uint256 tokenId,
@@ -201,7 +150,6 @@ contract Market is ReentrancyGuard {
         nonReentrant
         isOwner(nftAddress, tokenId, msg.sender)
     {
-        //We should check the value of `newPrice` and revert if it's below zero (like we also check in `listItem()`)
         if (newPrice <= 0) {
             revert PriceMustBeAboveZero();
         }
@@ -209,9 +157,6 @@ contract Market is ReentrancyGuard {
         emit ItemListed(msg.sender, nftAddress, tokenId, newPrice);
     }
 
-    /*
-     * @notice Method for withdrawing proceeds from sales
-     */
     function withdrawProceeds() external {
         uint256 proceeds = s_proceeds[msg.sender];
         if (proceeds <= 0) {
@@ -221,10 +166,6 @@ contract Market is ReentrancyGuard {
         (bool success, ) = payable(msg.sender).call{value: proceeds}("");
         require(success, "Transfer failed");
     }
-
-    /////////////////////
-    // Getter Functions //
-    /////////////////////
 
     function getListing(address nftAddress, uint256 tokenId)
         external
