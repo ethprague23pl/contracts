@@ -74,3 +74,7 @@ Steps:
 - Deploy Paymasters,
 - Send ETH to Paymasters,
 - Buy one ticket from event contract, pay gas using Paymasters paying in native token,
+
+## API
+
+In src/index.js
