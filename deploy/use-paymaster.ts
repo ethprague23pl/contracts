@@ -27,14 +27,8 @@ function getEvent(
   return new ethers.Contract(eventAddress, artifact.abi, wallet);
 }
 
-// function getPaymaster(hre: HardhatRuntimeEnvironment, wallet: Wallet) {
-//   const artifact = hre.artifacts.readArtifactSync("Paymaster");
-//   return new ethers.Contract(PAYMASTER_ADDRESS, artifact.abi, wallet);
-// }
-
 export default async function (hre: HardhatRuntimeEnvironment) {
   const provider = new Provider('https://testnet.era.zksync.dev');
-  // const provider = new Provider("http://localhost:3050/");
 
   const wallet = new Wallet(WALLET!, provider);
   const deployer1 = new Deployer(hre, wallet);
