@@ -20,7 +20,25 @@ deploy/use-market.ts
 
 Steps:
 
--
+- Deploy empty,
+- Deploy event,
+- Deploy asset account factory,
+- Deploy account abstraction,
+- Deploy mockUSDC token,
+- Deploy Paymasters,
+- Send ETH to Paymasters,
+- Set API3 proxy to calculate gas in any ERC20 token,
+- Buy 4 tickets from event contract, pay gas using Paymasters paying in ERC20 token, this step emit event for remain 50%/25%/10% tickets after transaction,
+- Get all tokens owned by user,
+- Set max sell prcie to limit resell,
+- Get ticket price and max sell price,
+- Approve token to sell on our market,
+- List item on our market,
+- Get previous listing details,
+- Buy listed ticket by other wallet for 2x more than default price,
+- Get event owner account balance
+- Withdraw founds from ticket sell
+- Get event owner account balance after withdraw to confirm that price above max sell price was sended to owner to prevent resell.
 
 ```
 deploy/use-paymaster.ts
