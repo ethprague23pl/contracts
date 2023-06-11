@@ -39,18 +39,17 @@ app.post('/event', async (req, res) => {
 
   try {
     const wallet = new Wallet(process.env.PRIVATE_KEY, provider);
-    const ContractInstance = new ContractFactory(abi, bytecode, wallet);
-    const contractInstance = await ContractInstance.deploy(
+    const eventFactory = new ContractFactory(abi, bytecode, wallet);
+    const deployTx = await eventFactory.deploy(
       params.ticketQuantity,
-      // ethers.utils.parseUnits(params.ticketPrice, 'wei').toString(),
       params.ticketPrice,
       0, // max sell price
       '0x7720f64Dd997c6b540B8cf52704917fcBB359EE5', // proxy event
     );
 
-    console.log('Deployed contract address - ', contractInstance.address);
+    console.log('Deployed contract address - ', deployTx.address);
 
-    res.send({ event_address: contractInstance.address });
+    res.send({ event_address: deployTx.address });
   } catch (err) {
     res.send({ event_address: 'ERROR' });
   }
@@ -106,6 +105,36 @@ app.get('/account', async (req, res) => {
   });
 });
 
+app.get('/ticket', async (req, res) => {
+  const provider = new Provider('https://testnet.era.zksync.dev');
+  const params = req.query;
+  console.log(params);
+
+  const privateKey = params.walletPrivateKey
+    ? params.walletPrivateKey
+    : '0x41bc6bc21b3dcfa2447b290fe587f078d784ba97aea39637ff6366879a450991';
+  const eventContractAddress = params.eventContractAddress
+    ? params.eventContractAddress
+    : EVENT_TESTNET_ADDRESS;
+
+  const userWallet = new Wallet(privateKey, provider);
+
+  const event = new ethers.Contract(eventContractAddress, abi, userWallet);
+
+  const tokens = await event.tokensOfOwner(userWallet.address);
+
+  const parsed = tokens?.map((token) => Math.round(parseFloat(token) * 1));
+
+  console.log(parsed);
+
+  const response = parsed.map((token) => ({
+    contractAddress: eventContractAddress,
+    id: token,
+  }));
+
+  res.send(response);
+});
+
 app.post('/ticket', async (req, res) => {
   const provider = new Provider('https://testnet.era.zksync.dev');
   const params = req.body;
@@ -146,7 +175,7 @@ app.post('/ticket', async (req, res) => {
   console.log(paymasterParams);
 
   await (
-    await event.connect(userWallet).buy(ticketQuantity, {
+    await event.buy(ticketQuantity, {
       // specify gas values
       maxFeePerGas: gasPrice,
       maxPriorityFeePerGas: 0,

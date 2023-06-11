@@ -1,24 +1,10 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { ContractFactory, Provider, Wallet, utils } from 'zksync-web3';
+import { Provider, Wallet } from 'zksync-web3';
 import * as ethers from 'ethers';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Deployer } from '@matterlabs/hardhat-zksync-deploy';
 
 require('dotenv').config();
-
-const WALLET =
-  process.env.NODE_ENV === 'test'
-    ? '0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110'
-    : process.env.PRIVATE_KEY;
-
-function getEvent(
-  hre: HardhatRuntimeEnvironment,
-  wallet: Wallet,
-  eventAddress: string,
-) {
-  const artifact = hre.artifacts.readArtifactSync('Event');
-  return new ethers.Contract(eventAddress, artifact.abi, wallet);
-}
 
 export default async function (hre: HardhatRuntimeEnvironment) {
   const provider = new Provider('https://testnet.era.zksync.dev');
