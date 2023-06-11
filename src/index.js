@@ -12,6 +12,8 @@ const AA_FACTORY_TESTNET_ADDRESS = '0xA2a98C0Fb41F971f4a04d82E013EE4BC51e5A245';
 const PAYMASTER_TESTNET_ADDRESS = '0x7e73AFDe3e996437b0E7D20B8394FcA1d76cF68a';
 const ERC20_MOCK_TESTNET_ADDRESS = '0xcd6DBE1f8d04F35e84aAbAeB5d150F2bAEe5fFbE';
 const EVENT_TESTNET_ADDRESS = '0x00324B1eb4D2fd83cc730cA82f54F9DC7dCd8611';
+const MARKETPLACE_TESTNET_ADDRESS =
+  '0xcA1007354c3bfF74bf596dc036859BdD4914e398';
 
 const { abi, bytecode } = require('./abis/eventAbi');
 const { abi: aaWalletAbi } = require('./abis/aaWallet');
@@ -134,6 +136,8 @@ app.get('/ticket', async (req, res) => {
 
   res.send(response);
 });
+
+app.post('/marketplace', async (req, res) => {});
 
 app.post('/ticket', async (req, res) => {
   const provider = new Provider('https://testnet.era.zksync.dev');

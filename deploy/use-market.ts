@@ -42,7 +42,6 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const market = await deployer1.deploy(marketArtifact);
   console.log(`Market address: ${market.address}`);
 
-
   // Deploying the ERC20 token
   const erc20Artifact = await deployer1.loadArtifact('USDCMOCK');
   const erc20 = await deployer1.deploy(erc20Artifact, ['USDC', 'USDC', 18]);
@@ -86,7 +85,7 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const fee = gasPrice.mul(gasLimit.toString());
   console.log(`Estimated ETH FEE (gasPrice * gasLimit): ${fee}`);
 
-//   console.log(paymasterParams);
+  //   console.log(paymasterParams);
 
   await (
     await userEvent.connect(randomWallet).buy(2, {
@@ -133,13 +132,11 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     })
   ).wait();
 
-    const tokens = await event.tokensOfOwner(randomWallet.address)
-  console.log(
-    `Minted now by randomWallet address is: `,tokens[0]
-  );
+  const tokens = await event.tokensOfOwner(randomWallet.address);
+  console.log(`Minted now by randomWallet address is: `, tokens[0]);
 
   await (
-    await userEvent.connect(wallet).setMaxSellPrice( 10, {
+    await userEvent.connect(wallet).setMaxSellPrice(10, {
       // specify gas values
       maxFeePerGas: gasPrice,
       maxPriorityFeePerGas: 0,
@@ -153,23 +150,22 @@ export default async function (hre: HardhatRuntimeEnvironment) {
     })
   ).wait();
 
-    console.log("max sell price")
+  console.log('max sell price');
 
-    
-    const prices = await userEvent.connect(wallet).getTicketPrices({
-          // specify gas values
-          maxFeePerGas: gasPrice,
-          maxPriorityFeePerGas: 0,
-          gasLimit: gasLimit,
-          // paymaster info
-          value: ethers.utils.parseEther('0'),
-          customData: {
-            paymasterParams: paymasterParams,
-            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-          },
-        });
+  const prices = await userEvent.connect(wallet).getTicketPrices({
+    // specify gas values
+    maxFeePerGas: gasPrice,
+    maxPriorityFeePerGas: 0,
+    gasLimit: gasLimit,
+    // paymaster info
+    value: ethers.utils.parseEther('0'),
+    customData: {
+      paymasterParams: paymasterParams,
+      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+    },
+  });
 
-        console.log("maxPrice", prices[1])
+  console.log('maxPrice', prices[1]);
 
   await (
     await userEvent.connect(randomWallet).approve(market.address, 1, {
@@ -185,7 +181,7 @@ export default async function (hre: HardhatRuntimeEnvironment) {
       },
     })
   ).wait();
-console.log("approvedddd")
+  console.log('approvedddd');
   await (
     await market.connect(randomWallet).listItem(event.address, 1, 20, {
       // specify gas values
@@ -200,24 +196,26 @@ console.log("approvedddd")
       },
     })
   ).wait();
-  console.log('gdljklgdakljgadjlkagkl')
+  console.log('gdljklgdakljgadjlkagkl');
 
   const resp = await market.connect(randomWallet).getListing(event.address, 1, {
-      // specify gas values
-      maxFeePerGas: gasPrice,
-      maxPriorityFeePerGas: 0,
-      gasLimit: gasLimit,
-      // paymaster info
-      value: ethers.utils.parseEther('0'),
-      customData: {
-        paymasterParams: paymasterParams,
-        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-      },
-    });
+    // specify gas values
+    maxFeePerGas: gasPrice,
+    maxPriorityFeePerGas: 0,
+    gasLimit: gasLimit,
+    // paymaster info
+    value: ethers.utils.parseEther('0'),
+    customData: {
+      paymasterParams: paymasterParams,
+      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+    },
+  });
 
-  console.log("response", resp)
-  console.log("main wallet before buy", (await wallet.getBalance()).toHexString())
-
+  console.log('response', resp);
+  console.log(
+    'main wallet before buy',
+    (await wallet.getBalance()).toHexString(),
+  );
 
   await (
     await market.connect(wallet).buyItem(event.address, 1, {
@@ -233,7 +231,7 @@ console.log("approvedddd")
       },
     })
   ).wait();
-  console.log("balance after buy", await event.tokensOfOwner(wallet.address))
+  console.log('balance after buy', await event.tokensOfOwner(wallet.address));
 
   await (
     await market.connect(randomWallet).withdrawProceeds({
@@ -242,7 +240,7 @@ console.log("approvedddd")
       maxPriorityFeePerGas: 0,
       gasLimit: gasLimit,
       // paymaster info
-    //   value: ethers.utils.parseEther('0.00000000000000002'),
+      //   value: ethers.utils.parseEther('0.00000000000000002'),
       customData: {
         paymasterParams: paymasterParams,
         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
@@ -250,6 +248,12 @@ console.log("approvedddd")
     })
   ).wait();
 
-  console.log("balance after withdraw", (await randomWallet.getBalance()).toHexString())
-  console.log("main wallet after withdraw", (await wallet.getBalance()).toHexString())
+  console.log(
+    'balance after withdraw',
+    (await randomWallet.getBalance()).toHexString(),
+  );
+  console.log(
+    'main wallet after withdraw',
+    (await wallet.getBalance()).toHexString(),
+  );
 }
