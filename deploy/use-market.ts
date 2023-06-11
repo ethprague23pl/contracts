@@ -31,7 +31,7 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   // Deploying the Event
   const eventArtifact = await deployer1.loadArtifact('Event');
   const event = await deployer1.deploy(eventArtifact, [
-    100,
+    4,
     0,
     0,
     '0x7720f64Dd997c6b540B8cf52704917fcBB359EE5',
@@ -87,6 +87,36 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   console.log(`Estimated ETH FEE (gasPrice * gasLimit): ${fee}`);
 
 //   console.log(paymasterParams);
+
+  await (
+    await userEvent.connect(randomWallet).buy(2, {
+      // specify gas values
+      maxFeePerGas: gasPrice,
+      maxPriorityFeePerGas: 0,
+      gasLimit: gasLimit,
+      // paymaster info
+      value: ethers.utils.parseEther('0'),
+      customData: {
+        paymasterParams: paymasterParams,
+        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+      },
+    })
+  ).wait();
+
+  await (
+    await userEvent.connect(randomWallet).buy(1, {
+      // specify gas values
+      maxFeePerGas: gasPrice,
+      maxPriorityFeePerGas: 0,
+      gasLimit: gasLimit,
+      // paymaster info
+      value: ethers.utils.parseEther('0'),
+      customData: {
+        paymasterParams: paymasterParams,
+        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+      },
+    })
+  ).wait();
 
   await (
     await userEvent.connect(randomWallet).buy(1, {
@@ -222,5 +252,4 @@ console.log("approvedddd")
 
   console.log("balance after withdraw", (await randomWallet.getBalance()).toHexString())
   console.log("main wallet after withdraw", (await wallet.getBalance()).toHexString())
-
 }

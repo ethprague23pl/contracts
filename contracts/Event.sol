@@ -31,6 +31,8 @@ contract Event is
     uint256 currentId = 0;
 
     mapping(address => bool) proofsOfAttendance;
+    mapping(uint256 => bool) private sellStage;
+    uint256[] private stages = [50, 25, 10];
 
     Counters.Counter public tokenIdCounter;
 
@@ -73,6 +75,7 @@ contract Event is
             
             tokenIdCounter.increment();
         }
+        checkStage();
     }
 
     function _baseURI() internal view virtual override(ERC721A) returns (string memory) {
@@ -103,8 +106,16 @@ contract Event is
         return 1;
     }
 
-    // function tokensOfOwner(address owner) external view returns(uint256[]) {
-    //     return tokensOfOwner(owner);
-    // }
+    function checkStage() internal {
+        for(uint i = 0; i < stages.length; i++) {
+            if (!sellStage[stages[i]]) {
+                if ((ticketsCount / tokenIdCounter.current())* 100 > stages[i]){
+                    sellStage[stages[i]] = true;
+                    ProxyEvent(proxyEventContract).emitStageEvent(address(this),  string(abi.encodePacked(stages[i]))); 
+                    break;
+                }
+            }
+        }
+    }
     
 }
